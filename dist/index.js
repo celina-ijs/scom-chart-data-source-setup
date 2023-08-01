@@ -95,7 +95,7 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
         let res = null;
         try {
             // const ipfsBaseUrl = `${window.location.origin}/ipfs/`;
-            const ipfsBaseUrl = `https://ipfs.scom.dev/ipfs/`;
+            const ipfsBaseUrl = `/ipfs/`;
             res = await fetch(ipfsBaseUrl + ipfsCid);
             return await res.json();
         }
