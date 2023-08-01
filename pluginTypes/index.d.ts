@@ -57,9 +57,11 @@ declare module "@scom/scom-chart-data-source-setup" {
         private captureBtn;
         private downloadBtn;
         private mdAlert;
-        private requiredLb;
         private fileNameLb;
         private pnlUpload;
+        private pnlFile;
+        private pnlEndpoint;
+        private pnlLoading;
         constructor(parent?: Container, options?: any);
         static create(options?: ScomChartDataElement, parent?: Container): Promise<ScomChartDataSourceSetup>;
         get data(): IConfigData;

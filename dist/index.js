@@ -150,9 +150,6 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         renderUI() {
             var _a;
-            const findedMode = utils_1.modeOptions.find((mode) => mode.value === this.data.mode);
-            if (findedMode)
-                this.modeSelect.selectedItem = findedMode;
             this.updateMode();
             this.endpointInput.value = (_a = this.data.apiEndpoint) !== null && _a !== void 0 ? _a : '';
             this.captureBtn.enabled = !!this.endpointInput.value;
@@ -162,14 +159,15 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             this.updateMode();
         }
         async updateMode() {
-            var _a, _b;
+            var _a;
+            const findedMode = utils_1.modeOptions.find((mode) => mode.value === this.data.mode);
+            if (findedMode)
+                this.modeSelect.selectedItem = findedMode;
             const isSnapshot = this.data.mode === interface_2.ModeType.SNAPSHOT;
-            this.captureBtn.visible = isSnapshot;
-            this.endpointInput.readOnly = isSnapshot;
-            this.requiredLb.visible = !isSnapshot;
+            this.pnlEndpoint.visible = !isSnapshot;
             this.pnlUpload.visible = isSnapshot;
-            this.fileNameLb.visible = !!((_a = this.data.file) === null || _a === void 0 ? void 0 : _a.cid);
-            this.fileNameLb.caption = `File name: ${((_b = this.data.file) === null || _b === void 0 ? void 0 : _b.name) || ''}`;
+            this.pnlFile.visible = isSnapshot;
+            this.fileNameLb.caption = `${((_a = this.data.file) === null || _a === void 0 ? void 0 : _a.cid) || ''}`;
         }
         async updateChartData() {
             const data = this.data.apiEndpoint ? await (0, utils_1.callAPI)(this.data.apiEndpoint) : [];
@@ -182,8 +180,11 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         async onCapture() {
             var _a;
-            this.captureBtn.rightIcon.spin = true;
-            this.captureBtn.rightIcon.visible = true;
+            // this.captureBtn.rightIcon.spin = true
+            // this.captureBtn.rightIcon.visible = true
+            if (this.pnlLoading)
+                this.pnlLoading.visible = true;
+            this.mode = interface_2.ModeType.SNAPSHOT;
             try {
                 await this.updateChartData();
                 if ((_a = this._data.chartData) === null || _a === void 0 ? void 0 : _a.length)
@@ -192,19 +193,22 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             catch (err) {
             }
             finally {
-                this.captureBtn.rightIcon.spin = false;
-                this.captureBtn.rightIcon.visible = false;
+                // this.captureBtn.rightIcon.spin = false
+                // this.captureBtn.rightIcon.visible = false
+                if (this.pnlLoading)
+                    this.pnlLoading.visible = false;
             }
         }
         async onUploadToIPFS() {
             var _a, _b;
             const result = (_b = (_a = (await components_2.application.uploadData('chart_data.json', this.data.chartData)).data) === null || _a === void 0 ? void 0 : _a.links) === null || _b === void 0 ? void 0 : _b[0];
             if (result) {
+                this._data.file = { cid: result.cid, name: result.name };
+                this.fileNameLb.caption = `${result.cid || ''}`;
                 this.mdAlert.status = 'success';
                 this.mdAlert.status = 'Success';
                 this.mdAlert.content = 'Upload successfully!';
                 this.mdAlert.showModal();
-                this._data.file = { cid: result.cid, name: result.name };
             }
             else {
                 this.mdAlert.status = 'error';
@@ -217,20 +221,19 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             const self = this;
             if (files && files.length > 0) {
                 const file = files[0];
-                this.fileNameLb.caption = `File name: ${file.name || ''}`;
-                this.fileNameLb.visible = true;
                 const reader = new FileReader();
                 reader.readAsText(file, 'UTF-8');
                 reader.onload = async (event) => {
                     var _a;
                     self._data.chartData = (_a = event.target) === null || _a === void 0 ? void 0 : _a.result;
+                    if (this.pnlLoading)
+                        this.pnlLoading.visible = true;
                     target.clear();
                     if (self._data.chartData)
                         await this.onUploadToIPFS();
+                    if (this.pnlLoading)
+                        this.pnlLoading.visible = false;
                 };
-            }
-            else {
-                this.fileNameLb.visible = false;
             }
         }
         async onExportFile() {
@@ -266,24 +269,44 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         render() {
             return (this.$render("i-panel", null,
+                this.$render("i-vstack", { id: 'pnlLoading', visible: false, width: '100%', height: "100%", class: 'i-loading-overlay' },
+                    this.$render("i-vstack", { class: 'i-loading-spinner', horizontalAlignment: 'center', verticalAlignment: 'center' },
+                        this.$render("i-icon", { class: 'i-loading-spinner_icon', name: 'spinner', width: 24, height: 24, fill: Theme.colors.primary.main }),
+                        this.$render("i-label", { caption: 'Loading...', font: { color: Theme.colors.primary.main, size: '1rem' }, class: 'i-loading-spinner_text' }))),
                 this.$render("i-vstack", { gap: '10px' },
                     this.$render("i-vstack", { gap: '10px' },
                         this.$render("i-label", { caption: 'Mode' }),
                         this.$render("i-combo-box", { id: 'modeSelect', items: utils_1.modeOptions, selectedItem: utils_1.modeOptions[0], height: 42, width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onModeChanged })),
-                    this.$render("i-vstack", { gap: '10px' },
+                    this.$render("i-vstack", { id: 'pnlEndpoint', gap: '10px' },
                         this.$render("i-hstack", { gap: 4 },
                             this.$render("i-label", { caption: 'Api Endpoint' }),
-                            this.$render("i-label", { id: "requiredLb", caption: '*', font: { color: '#ff0000' } })),
+                            this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
                         this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem' },
                             this.$render("i-input", { id: 'endpointInput', height: 42, width: '100%', onChanged: this.onUpdateEndpoint }),
-                            this.$render("i-button", { id: 'captureBtn', height: 42, caption: 'Capture Snapshot', background: { color: Theme.colors.primary.main }, font: { color: Theme.colors.primary.contrastText }, rightIcon: { name: 'spinner', spin: false, fill: Theme.colors.primary.contrastText, width: 16, height: 16, visible: false }, class: "capture-btn", enabled: false, onClick: this.onCapture }))),
-                    this.$render("i-vstack", { id: "pnlUpload", gap: '10px' },
+                            this.$render("i-button", { id: 'captureBtn', height: 42, caption: 'Capture Snapshot', background: { color: Theme.colors.primary.main }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
+                                    name: 'spinner',
+                                    spin: false,
+                                    fill: Theme.colors.primary.contrastText,
+                                    width: 16,
+                                    height: 16,
+                                    visible: false,
+                                }, class: 'capture-btn', enabled: false, onClick: this.onCapture }))),
+                    this.$render("i-vstack", { id: 'pnlFile', gap: 10 },
+                        this.$render("i-label", { caption: 'File Path' }),
+                        this.$render("i-label", { id: 'fileNameLb', caption: '' })),
+                    this.$render("i-vstack", { id: 'pnlUpload', gap: '10px' },
                         this.$render("i-label", { caption: 'Upload' }),
-                        this.$render("i-upload", { width: "100%", onChanged: this.onImportFile, class: index_css_1.uploadStyle }),
-                        this.$render("i-label", { id: "fileNameLb", visible: false, caption: '' })),
+                        this.$render("i-upload", { width: '100%', onChanged: this.onImportFile, class: index_css_1.uploadStyle })),
                     this.$render("i-vstack", { gap: '10px' },
-                        this.$render("i-button", { id: "downloadBtn", margin: { top: 10 }, height: 42, width: "100%", font: { color: Theme.colors.primary.contrastText }, rightIcon: { name: 'spinner', spin: false, fill: Theme.colors.primary.contrastText, width: 16, height: 16, visible: false }, caption: "Download File", onClick: this.onExportFile }))),
-                this.$render("i-alert", { id: "mdAlert" })));
+                        this.$render("i-button", { id: 'downloadBtn', margin: { top: 10 }, height: 42, width: '100%', font: { color: Theme.colors.primary.contrastText }, rightIcon: {
+                                name: 'spinner',
+                                spin: false,
+                                fill: Theme.colors.primary.contrastText,
+                                width: 16,
+                                height: 16,
+                                visible: false,
+                            }, caption: 'Download File', onClick: this.onExportFile }))),
+                this.$render("i-alert", { id: 'mdAlert' })));
         }
     };
     ScomChartDataSourceSetup = __decorate([
