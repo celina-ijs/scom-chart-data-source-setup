@@ -68,7 +68,7 @@ define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"]
 define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@scom/scom-chart-data-source-setup/interface.ts"], function (require, exports, interface_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.modeOptions = exports.callAPI = void 0;
+    exports.fetchContentByCID = exports.modeOptions = exports.callAPI = void 0;
     const callAPI = async (apiEndpoint) => {
         if (!apiEndpoint)
             return [];
@@ -91,10 +91,27 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
             value: interface_1.ModeType.SNAPSHOT
         }
     ];
+    const fetchContentByCID = async (ipfsCid) => {
+        let res = null;
+        try {
+            // const ipfsBaseUrl = `${window.location.origin}/ipfs/`;
+            const ipfsBaseUrl = `https://ipfs.scom.dev/ipfs/`;
+            res = await fetch(ipfsBaseUrl + ipfsCid);
+            return await res.json();
+        }
+        catch (err) {
+        }
+        return res;
+    };
+    exports.fetchContentByCID = fetchContentByCID;
 });
 define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/components", "@scom/scom-chart-data-source-setup/interface.ts", "@scom/scom-chart-data-source-setup/utils.ts", "@scom/scom-chart-data-source-setup/index.css.ts", "@scom/scom-chart-data-source-setup/index.css.ts"], function (require, exports, components_2, interface_2, utils_1, index_css_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ModeType = exports.callAPI = exports.fetchContentByCID = void 0;
+    Object.defineProperty(exports, "ModeType", { enumerable: true, get: function () { return interface_2.ModeType; } });
+    Object.defineProperty(exports, "callAPI", { enumerable: true, get: function () { return utils_1.callAPI; } });
+    Object.defineProperty(exports, "fetchContentByCID", { enumerable: true, get: function () { return utils_1.fetchContentByCID; } });
     const Theme = components_2.Styles.Theme.ThemeVars;
     let ScomChartDataSourceSetup = class ScomChartDataSourceSetup extends components_2.Module {
         constructor(parent, options) {

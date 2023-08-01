@@ -20,3 +20,15 @@ export const modeOptions = [
     value: ModeType.SNAPSHOT
   }
 ]
+
+export const fetchContentByCID = async (ipfsCid: string) => {
+  let res = null;
+  try {
+    // const ipfsBaseUrl = `${window.location.origin}/ipfs/`;
+    const ipfsBaseUrl = `https://ipfs.scom.dev/ipfs/`
+    res = await fetch(ipfsBaseUrl + ipfsCid);
+    return await res.json();
+  } catch (err) {
+  }
+  return res;
+}

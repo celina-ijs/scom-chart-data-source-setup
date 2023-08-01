@@ -18,9 +18,15 @@ import {
 import './index.css'
 import { IConfigData, IFileData } from './interface';
 import { ModeType } from './interface';
-import { callAPI, modeOptions } from './utils'
+import { callAPI, modeOptions, fetchContentByCID } from './utils'
 import { comboBoxStyle, uploadStyle } from './index.css';
 const Theme = Styles.Theme.ThemeVars
+
+export {
+  fetchContentByCID,
+  callAPI,
+  ModeType
+}
 
 interface ScomChartDataElement extends ControlElement {
   mode?: ModeType;

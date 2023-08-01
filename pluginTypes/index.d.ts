@@ -28,6 +28,7 @@ declare module "@scom/scom-chart-data-source-setup/utils.ts" {
         label: string;
         value: ModeType;
     }[];
+    export const fetchContentByCID: (ipfsCid: string) => Promise<any>;
 }
 /// <amd-module name="@scom/scom-chart-data-source-setup" />
 declare module "@scom/scom-chart-data-source-setup" {
@@ -35,6 +36,8 @@ declare module "@scom/scom-chart-data-source-setup" {
     import "@scom/scom-chart-data-source-setup/index.css.ts";
     import { IConfigData, IFileData } from "@scom/scom-chart-data-source-setup/interface.ts";
     import { ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
+    import { callAPI, fetchContentByCID } from "@scom/scom-chart-data-source-setup/utils.ts";
+    export { fetchContentByCID, callAPI, ModeType };
     interface ScomChartDataElement extends ControlElement {
         mode?: ModeType;
         apiEndpoint?: string;
