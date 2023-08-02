@@ -52,9 +52,11 @@ export default class ScomChartDataSourceSetup extends Module {
   private captureBtn: Button
   private downloadBtn: Button
   private mdAlert: Alert
-  private requiredLb: Label
   private fileNameLb: Label
   private pnlUpload: VStack
+  private pnlFile: VStack
+  private pnlEndpoint: VStack
+  private pnlLoading: VStack
 
   constructor(parent?: Container, options?: any) {
     super(parent, options)
@@ -97,8 +99,6 @@ export default class ScomChartDataSourceSetup extends Module {
   }
 
   private renderUI() {
-    const findedMode = modeOptions.find((mode) => mode.value === this.data.mode)
-    if (findedMode) this.modeSelect.selectedItem = findedMode
     this.updateMode()
     this.endpointInput.value = this.data.apiEndpoint ?? ''
     this.captureBtn.enabled = !!this.endpointInput.value
@@ -110,13 +110,13 @@ export default class ScomChartDataSourceSetup extends Module {
   }
 
   private async updateMode() {
+    const findedMode = modeOptions.find((mode) => mode.value === this.data.mode)
+    if (findedMode) this.modeSelect.selectedItem = findedMode
     const isSnapshot = this.data.mode === ModeType.SNAPSHOT
-    this.captureBtn.visible = isSnapshot
-    this.endpointInput.readOnly = isSnapshot
-    this.requiredLb.visible = !isSnapshot
+    this.pnlEndpoint.visible = !isSnapshot
     this.pnlUpload.visible = isSnapshot
-    this.fileNameLb.visible = !!this.data.file?.cid
-    this.fileNameLb.caption = `File name: ${this.data.file?.name || ''}`
+    this.pnlFile.visible = isSnapshot
+    this.fileNameLb.caption = `${this.data.file?.cid || ''}`
   }
 
   private async updateChartData() {
@@ -130,8 +130,10 @@ export default class ScomChartDataSourceSetup extends Module {
   }
 
   private async onCapture() {
-    this.captureBtn.rightIcon.spin = true
-    this.captureBtn.rightIcon.visible = true
+    // this.captureBtn.rightIcon.spin = true
+    // this.captureBtn.rightIcon.visible = true
+    if (this.pnlLoading) this.pnlLoading.visible = true
+    this.mode = ModeType.SNAPSHOT
     try {
       await this.updateChartData()
       if (this._data.chartData?.length)
@@ -139,19 +141,21 @@ export default class ScomChartDataSourceSetup extends Module {
     } catch(err) {
     }
     finally {
-      this.captureBtn.rightIcon.spin = false
-      this.captureBtn.rightIcon.visible = false
+      // this.captureBtn.rightIcon.spin = false
+      // this.captureBtn.rightIcon.visible = false
+      if (this.pnlLoading) this.pnlLoading.visible = false
     }
   }
 
   private async onUploadToIPFS() {
     const result = (await application.uploadData('chart_data.json', this.data.chartData)).data?.links?.[0]
     if (result) {
+      this._data.file = { cid: result.cid, name: result.name }
+      this.fileNameLb.caption = `${result.cid || ''}`
       this.mdAlert.status = 'success'
       this.mdAlert.status = 'Success'
       this.mdAlert.content = 'Upload successfully!'
       this.mdAlert.showModal();
-      this._data.file = { cid: result.cid, name: result.name }
     }
     else {
       this.mdAlert.status = 'error'
@@ -165,18 +169,15 @@ export default class ScomChartDataSourceSetup extends Module {
     const self = this
     if (files && files.length > 0) {
       const file = files[0]
-      this.fileNameLb.caption = `File name: ${file.name || ''}`
-      this.fileNameLb.visible = true
       const reader = new FileReader()
       reader.readAsText(file, 'UTF-8')
       reader.onload = async (event) => {
         self._data.chartData = event.target?.result as string
+        if (this.pnlLoading) this.pnlLoading.visible = true
         target.clear()
-        if (self._data.chartData)
-          await this.onUploadToIPFS()
+        if (self._data.chartData) await this.onUploadToIPFS()
+        if (this.pnlLoading) this.pnlLoading.visible = false
       };
-    } else {
-      this.fileNameLb.visible = false
     }
   }
 
@@ -215,6 +216,31 @@ export default class ScomChartDataSourceSetup extends Module {
   render() {
     return (
       <i-panel>
+        <i-vstack
+          id='pnlLoading'
+          visible={false}
+          width='100%' height="100%"
+          class='i-loading-overlay'
+        >
+          <i-vstack
+            class='i-loading-spinner'
+            horizontalAlignment='center'
+            verticalAlignment='center'
+          >
+            <i-icon
+              class='i-loading-spinner_icon'
+              name='spinner'
+              width={24}
+              height={24}
+              fill={Theme.colors.primary.main}
+            />
+            <i-label
+              caption='Loading...'
+              font={{ color: Theme.colors.primary.main, size: '1rem' }}
+              class='i-loading-spinner_text'
+            />
+          </i-vstack>
+        </i-vstack>
         <i-vstack gap='10px'>
           <i-vstack gap='10px'>
             <i-label caption='Mode'></i-label>
@@ -228,48 +254,71 @@ export default class ScomChartDataSourceSetup extends Module {
               onChanged={this.onModeChanged}
             ></i-combo-box>
           </i-vstack>
-          <i-vstack gap='10px'>
+          <i-vstack id='pnlEndpoint' gap='10px'>
             <i-hstack gap={4}>
               <i-label caption='Api Endpoint'></i-label>
-              <i-label id="requiredLb" caption='*' font={{color: '#ff0000'}}></i-label>
+              <i-label caption='*' font={{ color: '#ff0000' }}></i-label>
             </i-hstack>
             <i-hstack verticalAlignment='center' gap='0.5rem'>
-              <i-input id='endpointInput' height={42} width='100%' onChanged={this.onUpdateEndpoint}></i-input>
+              <i-input
+                id='endpointInput'
+                height={42}
+                width='100%'
+                onChanged={this.onUpdateEndpoint}
+              ></i-input>
               <i-button
                 id='captureBtn'
                 height={42}
                 caption='Capture Snapshot'
                 background={{ color: Theme.colors.primary.main }}
                 font={{ color: Theme.colors.primary.contrastText }}
-                rightIcon={{name: 'spinner', spin: false, fill: Theme.colors.primary.contrastText, width: 16, height: 16, visible: false}}
-                class="capture-btn"
+                rightIcon={{
+                  name: 'spinner',
+                  spin: false,
+                  fill: Theme.colors.primary.contrastText,
+                  width: 16,
+                  height: 16,
+                  visible: false,
+                }}
+                class='capture-btn'
                 enabled={false}
                 onClick={this.onCapture}
               ></i-button>
             </i-hstack>
           </i-vstack>
-          <i-vstack id="pnlUpload" gap='10px'>
+          <i-vstack id='pnlFile' gap={10}>
+            <i-label caption='File Path'></i-label>
+            <i-label id='fileNameLb' caption=''></i-label>
+          </i-vstack>
+          <i-vstack id='pnlUpload' gap='10px'>
             <i-label caption='Upload'></i-label>
             <i-upload
-              width="100%"
+              width='100%'
               onChanged={this.onImportFile}
               class={uploadStyle}
             ></i-upload>
-            <i-label id="fileNameLb" visible={false} caption=''></i-label>
           </i-vstack>
           <i-vstack gap='10px'>
             <i-button
-              id="downloadBtn"
-              margin={{top: 10}}
-              height={42} width="100%"
-              font={{color: Theme.colors.primary.contrastText}}
-              rightIcon={{name: 'spinner', spin: false, fill: Theme.colors.primary.contrastText, width: 16, height: 16, visible: false}}
-              caption="Download File"
+              id='downloadBtn'
+              margin={{ top: 10 }}
+              height={42}
+              width='100%'
+              font={{ color: Theme.colors.primary.contrastText }}
+              rightIcon={{
+                name: 'spinner',
+                spin: false,
+                fill: Theme.colors.primary.contrastText,
+                width: 16,
+                height: 16,
+                visible: false,
+              }}
+              caption='Download File'
               onClick={this.onExportFile}
             ></i-button>
           </i-vstack>
         </i-vstack>
-        <i-alert id="mdAlert"></i-alert>
+        <i-alert id='mdAlert'></i-alert>
       </i-panel>
     )
   }
