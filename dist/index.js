@@ -148,6 +148,8 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         set file(value) {
             this._data.file = value;
         }
+        async onCustomDataChanged(data) {
+        }
         renderUI() {
             var _a;
             this.updateMode();
@@ -157,6 +159,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         onModeChanged() {
             this.data.mode = this.modeSelect.selectedItem.value;
             this.updateMode();
+            this.onCustomDataChanged(this.data);
         }
         async updateMode() {
             var _a;
@@ -177,6 +180,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             var _a;
             this.data.apiEndpoint = (_a = this.endpointInput.value) !== null && _a !== void 0 ? _a : '';
             this.captureBtn.enabled = !!this.data.apiEndpoint;
+            this.onCustomDataChanged(this.data);
         }
         async onCapture() {
             var _a;
@@ -209,6 +213,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                 this.mdAlert.status = 'Success';
                 this.mdAlert.content = 'Upload successfully!';
                 this.mdAlert.showModal();
+                this.onCustomDataChanged(this.data);
             }
             else {
                 this.mdAlert.status = 'error';
@@ -265,6 +270,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             const mode = this.getAttribute('mode', true, interface_2.ModeType.LIVE);
             const file = this.getAttribute('file', true);
             const chartData = this.getAttribute('chartData', true);
+            this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
             this.data = { mode, apiEndpoint, file, chartData };
         }
         render() {
