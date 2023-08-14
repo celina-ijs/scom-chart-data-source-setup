@@ -42,6 +42,7 @@ declare module "@scom/scom-chart-data-source-setup" {
         mode?: ModeType;
         apiEndpoint?: string;
         file?: IFileData;
+        onCustomDataChanged?: (data: IConfigData) => Promise<void>;
     }
     global {
         namespace JSX {
@@ -72,6 +73,7 @@ declare module "@scom/scom-chart-data-source-setup" {
         set apiEndpoint(value: string);
         get file(): IFileData;
         set file(value: IFileData);
+        onCustomDataChanged(data: IConfigData): Promise<void>;
         private renderUI;
         private onModeChanged;
         private updateMode;

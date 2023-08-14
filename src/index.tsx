@@ -32,6 +32,7 @@ interface ScomChartDataElement extends ControlElement {
   mode?: ModeType;
   apiEndpoint?: string;
   file?: IFileData;
+  onCustomDataChanged?: (data: IConfigData) => Promise<void>;
 }
 
 declare global {
@@ -98,6 +99,9 @@ export default class ScomChartDataSourceSetup extends Module {
     this._data.file = value
   }
 
+  async onCustomDataChanged(data: IConfigData) {
+  }
+
   private renderUI() {
     this.updateMode()
     this.endpointInput.value = this.data.apiEndpoint ?? ''
@@ -107,6 +111,7 @@ export default class ScomChartDataSourceSetup extends Module {
   private onModeChanged() {
     this.data.mode = (this.modeSelect.selectedItem as IComboItem).value as ModeType
     this.updateMode()
+    this.onCustomDataChanged(this.data);
   }
 
   private async updateMode() {
@@ -127,6 +132,7 @@ export default class ScomChartDataSourceSetup extends Module {
   private onUpdateEndpoint() {
     this.data.apiEndpoint = this.endpointInput.value ?? ''
     this.captureBtn.enabled = !!this.data.apiEndpoint
+    this.onCustomDataChanged(this.data);
   }
 
   private async onCapture() {
@@ -156,6 +162,7 @@ export default class ScomChartDataSourceSetup extends Module {
       this.mdAlert.status = 'Success'
       this.mdAlert.content = 'Upload successfully!'
       this.mdAlert.showModal();
+      this.onCustomDataChanged(this.data);
     }
     else {
       this.mdAlert.status = 'error'
@@ -210,6 +217,7 @@ export default class ScomChartDataSourceSetup extends Module {
     const mode = this.getAttribute('mode', true, ModeType.LIVE)
     const file = this.getAttribute('file', true)
     const chartData = this.getAttribute('chartData', true)
+    this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
     this.data = {mode, apiEndpoint, file, chartData}
   }
 
