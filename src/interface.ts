@@ -3,6 +3,10 @@ export enum ModeType {
   SNAPSHOT = "Snapshot"
 }
 
+export enum DataSource {
+  Dune = "Dune",
+}
+
 export interface IFileData {
   cid?: string,
   name?: string
@@ -10,7 +14,8 @@ export interface IFileData {
 
 export interface IConfigData {
   mode: ModeType;
-  apiEndpoint?: string;
+  dataSource: DataSource;
+  queryId: string;
   file?: IFileData;
   chartData?: string;
 }

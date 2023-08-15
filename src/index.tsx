@@ -16,21 +16,23 @@ import {
   VStack
 } from '@ijstech/components'
 import './index.css'
-import { IConfigData, IFileData } from './interface';
+import { DataSource, IConfigData, IFileData } from './interface';
 import { ModeType } from './interface';
-import { callAPI, modeOptions, fetchContentByCID } from './utils'
+import { callAPI, modeOptions, fetchContentByCID, dataSourceOptions } from './utils'
 import { comboBoxStyle, uploadStyle } from './index.css';
 const Theme = Styles.Theme.ThemeVars
 
 export {
   fetchContentByCID,
   callAPI,
-  ModeType
+  ModeType,
+  DataSource
 }
 
 interface ScomChartDataElement extends ControlElement {
   mode?: ModeType;
-  apiEndpoint?: string;
+  dataSource?: DataSource;
+  queryId?: string;
   file?: IFileData;
   onCustomDataChanged?: (data: IConfigData) => Promise<void>;
 }
@@ -49,14 +51,16 @@ export default class ScomChartDataSourceSetup extends Module {
   private _data: IConfigData
 
   private modeSelect: ComboBox
-  private endpointInput: Input
+  private comboDataSource: ComboBox
+  private queryIdInput: Input
   private captureBtn: Button
   private downloadBtn: Button
   private mdAlert: Alert
   private fileNameLb: Label
   private pnlUpload: VStack
   private pnlFile: VStack
-  private pnlEndpoint: VStack
+  private pnlDataSource: VStack
+  private pnlQueryId: VStack
   private pnlLoading: VStack
 
   constructor(parent?: Container, options?: any) {
@@ -85,11 +89,18 @@ export default class ScomChartDataSourceSetup extends Module {
     this.updateMode()
   }
 
-  get apiEndpoint() {
-    return this._data.apiEndpoint
+  get dataSource() {
+    return this._data.dataSource
   }
-  set apiEndpoint(value: string) {
-    this._data.apiEndpoint = value
+  set dataSource(value: DataSource) {
+    this._data.dataSource = value
+  }
+
+  get queryId() {
+    return this._data.queryId
+  }
+  set queryId(value: string) {
+    this._data.queryId = value
   }
 
   get file() {
@@ -104,8 +115,8 @@ export default class ScomChartDataSourceSetup extends Module {
 
   private renderUI() {
     this.updateMode()
-    this.endpointInput.value = this.data.apiEndpoint ?? ''
-    this.captureBtn.enabled = !!this.endpointInput.value
+    this.queryIdInput.value = this.data.queryId ?? ''
+    this.captureBtn.enabled = !!this.queryIdInput.value
   }
 
   private onModeChanged() {
@@ -114,24 +125,30 @@ export default class ScomChartDataSourceSetup extends Module {
     this.onCustomDataChanged(this.data);
   }
 
+  private onDataSourceChanged() {
+    this.data.dataSource = (this.comboDataSource.selectedItem as IComboItem).value as DataSource
+    this.onCustomDataChanged(this.data);
+  }
+
   private async updateMode() {
     const findedMode = modeOptions.find((mode) => mode.value === this.data.mode)
     if (findedMode) this.modeSelect.selectedItem = findedMode
     const isSnapshot = this.data.mode === ModeType.SNAPSHOT
-    this.pnlEndpoint.visible = !isSnapshot
+    this.pnlDataSource.visible = !isSnapshot
+    this.pnlQueryId.visible = !isSnapshot
     this.pnlUpload.visible = isSnapshot
     this.pnlFile.visible = isSnapshot
     this.fileNameLb.caption = `${this.data.file?.cid || ''}`
   }
 
   private async updateChartData() {
-    const data = this.data.apiEndpoint ? await callAPI(this.data.apiEndpoint) : [];
+    const data = this.data.dataSource ? await callAPI(this.data.dataSource, this.data.queryId) : [];
     this._data.chartData = JSON.stringify(data, null, 4);
   }
 
-  private onUpdateEndpoint() {
-    this.data.apiEndpoint = this.endpointInput.value ?? ''
-    this.captureBtn.enabled = !!this.data.apiEndpoint
+  private onUpdateQueryId() {
+    this.data.queryId = this.queryIdInput.value ?? ''
+    this.captureBtn.enabled = !!this.data.queryId
     this.onCustomDataChanged(this.data);
   }
 
@@ -194,7 +211,7 @@ export default class ScomChartDataSourceSetup extends Module {
     try {
       let chartData = this.data.chartData;
       if (this.data.mode === ModeType.LIVE) {
-        chartData = JSON.stringify(this.data.apiEndpoint ? await callAPI(this.data.apiEndpoint) : [], null, 4);
+        chartData = JSON.stringify(this.data.dataSource ? await callAPI(this.data.dataSource, this.data.queryId) : [], null, 4);
       }
       const blob = new Blob([chartData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -213,12 +230,13 @@ export default class ScomChartDataSourceSetup extends Module {
 
   init() {
     super.init()
-    const apiEndpoint = this.getAttribute('apiEndpoint', true)
+    const queryId = this.getAttribute('queryId', true)
     const mode = this.getAttribute('mode', true, ModeType.LIVE)
+    const dataSource = this.getAttribute('dataSource', true, DataSource.Dune);
     const file = this.getAttribute('file', true)
     const chartData = this.getAttribute('chartData', true)
     this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
-    this.data = {mode, apiEndpoint, file, chartData}
+    this.data = {mode, dataSource, queryId, file, chartData}
   }
 
   render() {
@@ -262,17 +280,32 @@ export default class ScomChartDataSourceSetup extends Module {
               onChanged={this.onModeChanged}
             ></i-combo-box>
           </i-vstack>
-          <i-vstack id='pnlEndpoint' gap='10px'>
+          <i-vstack id='pnlDataSource' gap='10px'>
             <i-hstack gap={4}>
-              <i-label caption='Api Endpoint'></i-label>
+              <i-label caption='Data Source'></i-label>
+              <i-label caption='*' font={{ color: '#ff0000' }}></i-label>
+            </i-hstack>
+            <i-combo-box
+              id='comboDataSource'
+              items={dataSourceOptions}
+              selectedItem={dataSourceOptions[0]}
+              height={42}
+              width='100%'
+              class={comboBoxStyle}
+              onChanged={this.onDataSourceChanged}
+            ></i-combo-box>
+          </i-vstack>
+          <i-vstack id='pnlQueryId' gap='10px'>
+            <i-hstack gap={4}>
+              <i-label caption='Query ID'></i-label>
               <i-label caption='*' font={{ color: '#ff0000' }}></i-label>
             </i-hstack>
             <i-hstack verticalAlignment='center' gap='0.5rem'>
               <i-input
-                id='endpointInput'
+                id='queryIdInput'
                 height={42}
                 width='100%'
-                onChanged={this.onUpdateEndpoint}
+                onChanged={this.onUpdateQueryId}
               ></i-input>
               <i-button
                 id='captureBtn'
