@@ -1,8 +1,15 @@
-import { ModeType } from "./interface";
+import { DataSource, ModeType } from "./interface";
 
-export const callAPI = async (apiEndpoint: string) => {
-  if (!apiEndpoint) return [];
+export const callAPI = async (dataSource: DataSource, queryId: string) => {
+  if (!dataSource) return [];
   try {
+    let apiEndpoint = '';
+    switch (dataSource) {
+      case DataSource.Dune:
+        apiEndpoint = `/dune/query/${queryId}`;
+        break;
+    }
+    if (!apiEndpoint) return [];
     const response = await fetch(apiEndpoint);
     const jsonData = await response.json();
     return jsonData.result.rows || [];
@@ -18,6 +25,13 @@ export const modeOptions = [
   {
     label: 'Snapshot',
     value: ModeType.SNAPSHOT
+  }
+]
+
+export const dataSourceOptions = [
+  {
+    label: 'Dune',
+    value: DataSource.Dune
   }
 ]
 

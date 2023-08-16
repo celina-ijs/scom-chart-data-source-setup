@@ -57,22 +57,34 @@ define("@scom/scom-chart-data-source-setup/index.css.ts", ["require", "exports",
 define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.ModeType = void 0;
+    exports.DataSource = exports.ModeType = void 0;
     ///<amd-module name='@scom/scom-chart-data-source-setup/interface.ts'/> 
     var ModeType;
     (function (ModeType) {
         ModeType["LIVE"] = "Live";
         ModeType["SNAPSHOT"] = "Snapshot";
     })(ModeType = exports.ModeType || (exports.ModeType = {}));
+    var DataSource;
+    (function (DataSource) {
+        DataSource["Dune"] = "Dune";
+    })(DataSource = exports.DataSource || (exports.DataSource = {}));
 });
 define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@scom/scom-chart-data-source-setup/interface.ts"], function (require, exports, interface_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.fetchContentByCID = exports.modeOptions = exports.callAPI = void 0;
-    const callAPI = async (apiEndpoint) => {
-        if (!apiEndpoint)
+    exports.fetchContentByCID = exports.dataSourceOptions = exports.modeOptions = exports.callAPI = void 0;
+    const callAPI = async (dataSource, queryId) => {
+        if (!dataSource)
             return [];
         try {
+            let apiEndpoint = '';
+            switch (dataSource) {
+                case interface_1.DataSource.Dune:
+                    apiEndpoint = `/dune/query/${queryId}`;
+                    break;
+            }
+            if (!apiEndpoint)
+                return [];
             const response = await fetch(apiEndpoint);
             const jsonData = await response.json();
             return jsonData.result.rows || [];
@@ -91,6 +103,12 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
             value: interface_1.ModeType.SNAPSHOT
         }
     ];
+    exports.dataSourceOptions = [
+        {
+            label: 'Dune',
+            value: interface_1.DataSource.Dune
+        }
+    ];
     const fetchContentByCID = async (ipfsCid) => {
         let res = null;
         try {
@@ -105,11 +123,12 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
     };
     exports.fetchContentByCID = fetchContentByCID;
 });
-define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/components", "@scom/scom-chart-data-source-setup/interface.ts", "@scom/scom-chart-data-source-setup/utils.ts", "@scom/scom-chart-data-source-setup/index.css.ts", "@scom/scom-chart-data-source-setup/index.css.ts"], function (require, exports, components_2, interface_2, utils_1, index_css_1) {
+define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/components", "@scom/scom-chart-data-source-setup/interface.ts", "@scom/scom-chart-data-source-setup/interface.ts", "@scom/scom-chart-data-source-setup/utils.ts", "@scom/scom-chart-data-source-setup/index.css.ts", "@scom/scom-chart-data-source-setup/index.css.ts"], function (require, exports, components_2, interface_2, interface_3, utils_1, index_css_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.ModeType = exports.callAPI = exports.fetchContentByCID = void 0;
-    Object.defineProperty(exports, "ModeType", { enumerable: true, get: function () { return interface_2.ModeType; } });
+    exports.DataSource = exports.ModeType = exports.callAPI = exports.fetchContentByCID = void 0;
+    Object.defineProperty(exports, "DataSource", { enumerable: true, get: function () { return interface_2.DataSource; } });
+    Object.defineProperty(exports, "ModeType", { enumerable: true, get: function () { return interface_3.ModeType; } });
     Object.defineProperty(exports, "callAPI", { enumerable: true, get: function () { return utils_1.callAPI; } });
     Object.defineProperty(exports, "fetchContentByCID", { enumerable: true, get: function () { return utils_1.fetchContentByCID; } });
     const Theme = components_2.Styles.Theme.ThemeVars;
@@ -136,11 +155,17 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             this._data.mode = value;
             this.updateMode();
         }
-        get apiEndpoint() {
-            return this._data.apiEndpoint;
+        get dataSource() {
+            return this._data.dataSource;
         }
-        set apiEndpoint(value) {
-            this._data.apiEndpoint = value;
+        set dataSource(value) {
+            this._data.dataSource = value;
+        }
+        get queryId() {
+            return this._data.queryId;
+        }
+        set queryId(value) {
+            this._data.queryId = value;
         }
         get file() {
             return this._data.file;
@@ -153,12 +178,16 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         renderUI() {
             var _a;
             this.updateMode();
-            this.endpointInput.value = (_a = this.data.apiEndpoint) !== null && _a !== void 0 ? _a : '';
-            this.captureBtn.enabled = !!this.endpointInput.value;
+            this.queryIdInput.value = (_a = this.data.queryId) !== null && _a !== void 0 ? _a : '';
+            this.captureBtn.enabled = !!this.queryIdInput.value;
         }
         onModeChanged() {
             this.data.mode = this.modeSelect.selectedItem.value;
             this.updateMode();
+            this.onCustomDataChanged(this.data);
+        }
+        onDataSourceChanged() {
+            this.data.dataSource = this.comboDataSource.selectedItem.value;
             this.onCustomDataChanged(this.data);
         }
         async updateMode() {
@@ -166,20 +195,21 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             const findedMode = utils_1.modeOptions.find((mode) => mode.value === this.data.mode);
             if (findedMode)
                 this.modeSelect.selectedItem = findedMode;
-            const isSnapshot = this.data.mode === interface_2.ModeType.SNAPSHOT;
-            this.pnlEndpoint.visible = !isSnapshot;
+            const isSnapshot = this.data.mode === interface_3.ModeType.SNAPSHOT;
+            this.pnlDataSource.visible = !isSnapshot;
+            this.pnlQueryId.visible = !isSnapshot;
             this.pnlUpload.visible = isSnapshot;
             this.pnlFile.visible = isSnapshot;
             this.fileNameLb.caption = `${((_a = this.data.file) === null || _a === void 0 ? void 0 : _a.cid) || ''}`;
         }
         async updateChartData() {
-            const data = this.data.apiEndpoint ? await (0, utils_1.callAPI)(this.data.apiEndpoint) : [];
+            const data = this.data.dataSource ? await (0, utils_1.callAPI)(this.data.dataSource, this.data.queryId) : [];
             this._data.chartData = JSON.stringify(data, null, 4);
         }
-        onUpdateEndpoint() {
+        onUpdateQueryId() {
             var _a;
-            this.data.apiEndpoint = (_a = this.endpointInput.value) !== null && _a !== void 0 ? _a : '';
-            this.captureBtn.enabled = !!this.data.apiEndpoint;
+            this.data.queryId = (_a = this.queryIdInput.value) !== null && _a !== void 0 ? _a : '';
+            this.captureBtn.enabled = !!this.data.queryId;
             this.onCustomDataChanged(this.data);
         }
         async onCapture() {
@@ -188,7 +218,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             // this.captureBtn.rightIcon.visible = true
             if (this.pnlLoading)
                 this.pnlLoading.visible = true;
-            this.mode = interface_2.ModeType.SNAPSHOT;
+            this.mode = interface_3.ModeType.SNAPSHOT;
             try {
                 await this.updateChartData();
                 if ((_a = this._data.chartData) === null || _a === void 0 ? void 0 : _a.length)
@@ -246,8 +276,8 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             this.downloadBtn.rightIcon.visible = true;
             try {
                 let chartData = this.data.chartData;
-                if (this.data.mode === interface_2.ModeType.LIVE) {
-                    chartData = JSON.stringify(this.data.apiEndpoint ? await (0, utils_1.callAPI)(this.data.apiEndpoint) : [], null, 4);
+                if (this.data.mode === interface_3.ModeType.LIVE) {
+                    chartData = JSON.stringify(this.data.dataSource ? await (0, utils_1.callAPI)(this.data.dataSource, this.data.queryId) : [], null, 4);
                 }
                 const blob = new Blob([chartData], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -266,12 +296,13 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         init() {
             super.init();
-            const apiEndpoint = this.getAttribute('apiEndpoint', true);
-            const mode = this.getAttribute('mode', true, interface_2.ModeType.LIVE);
+            const queryId = this.getAttribute('queryId', true);
+            const mode = this.getAttribute('mode', true, interface_3.ModeType.LIVE);
+            const dataSource = this.getAttribute('dataSource', true, interface_2.DataSource.Dune);
             const file = this.getAttribute('file', true);
             const chartData = this.getAttribute('chartData', true);
             this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
-            this.data = { mode, apiEndpoint, file, chartData };
+            this.data = { mode, dataSource, queryId, file, chartData };
         }
         render() {
             return (this.$render("i-panel", null,
@@ -283,12 +314,17 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                     this.$render("i-vstack", { gap: '10px' },
                         this.$render("i-label", { caption: 'Mode' }),
                         this.$render("i-combo-box", { id: 'modeSelect', items: utils_1.modeOptions, selectedItem: utils_1.modeOptions[0], height: 42, width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onModeChanged })),
-                    this.$render("i-vstack", { id: 'pnlEndpoint', gap: '10px' },
+                    this.$render("i-vstack", { id: 'pnlDataSource', gap: '10px' },
                         this.$render("i-hstack", { gap: 4 },
-                            this.$render("i-label", { caption: 'Api Endpoint' }),
+                            this.$render("i-label", { caption: 'Data Source' }),
+                            this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
+                        this.$render("i-combo-box", { id: 'comboDataSource', items: utils_1.dataSourceOptions, selectedItem: utils_1.dataSourceOptions[0], height: 42, width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onDataSourceChanged })),
+                    this.$render("i-vstack", { id: 'pnlQueryId', gap: '10px' },
+                        this.$render("i-hstack", { gap: 4 },
+                            this.$render("i-label", { caption: 'Query ID' }),
                             this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
                         this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem' },
-                            this.$render("i-input", { id: 'endpointInput', height: 42, width: '100%', onChanged: this.onUpdateEndpoint }),
+                            this.$render("i-input", { id: 'queryIdInput', height: 42, width: '100%', onChanged: this.onUpdateQueryId }),
                             this.$render("i-button", { id: 'captureBtn', height: 42, caption: 'Capture Snapshot', background: { color: Theme.colors.primary.main }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
                                     name: 'spinner',
                                     spin: false,
