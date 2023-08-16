@@ -72,7 +72,7 @@ define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"]
 define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@scom/scom-chart-data-source-setup/interface.ts"], function (require, exports, interface_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.fetchContentByCID = exports.dataSourceOptions = exports.modeOptions = exports.callAPI = void 0;
+    exports.fetchContentByCID = exports.dataSourceOptions = exports.modeOptions = exports.getExternalLink = exports.callAPI = void 0;
     const callAPI = async (dataSource, queryId) => {
         if (!dataSource)
             return [];
@@ -93,6 +93,18 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
         return [];
     };
     exports.callAPI = callAPI;
+    const getExternalLink = (dataSource, queryId) => {
+        if (!dataSource)
+            return '';
+        let link = '';
+        switch (dataSource) {
+            case interface_1.DataSource.Dune:
+                link = `https://dune.com/queries/${queryId}`;
+                break;
+        }
+        return link;
+    };
+    exports.getExternalLink = getExternalLink;
     exports.modeOptions = [
         {
             label: 'Live',
@@ -294,6 +306,12 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                 this.downloadBtn.rightIcon.visible = false;
             }
         }
+        openLink() {
+            if (!this.data.dataSource || !this.data.queryId)
+                return;
+            const link = (0, utils_1.getExternalLink)(this.data.dataSource, this.data.queryId);
+            window.open(link, "_blank");
+        }
         init() {
             super.init();
             const queryId = this.getAttribute('queryId', true);
@@ -325,14 +343,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                             this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
                         this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem' },
                             this.$render("i-input", { id: 'queryIdInput', height: 42, width: '100%', onChanged: this.onUpdateQueryId }),
-                            this.$render("i-button", { id: 'captureBtn', height: 42, caption: 'Capture Snapshot', background: { color: Theme.colors.primary.main }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
-                                    name: 'spinner',
-                                    spin: false,
-                                    fill: Theme.colors.primary.contrastText,
-                                    width: 16,
-                                    height: 16,
-                                    visible: false,
-                                }, class: 'capture-btn', enabled: false, onClick: this.onCapture }))),
+                            this.$render("i-icon", { id: "btnOpenLink", name: "external-link-alt", fill: Theme.text.primary, opacity: 0.5, width: 25, height: 25, border: { width: 1, style: 'solid', color: Theme.colors.secondary.light, radius: 4 }, class: "pointer", onClick: this.openLink }))),
                     this.$render("i-vstack", { id: 'pnlFile', gap: 10 },
                         this.$render("i-label", { caption: 'File Path' }),
                         this.$render("i-label", { id: 'fileNameLb', caption: '' })),
@@ -340,14 +351,23 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                         this.$render("i-label", { caption: 'Upload' }),
                         this.$render("i-upload", { width: '100%', onChanged: this.onImportFile, class: index_css_1.uploadStyle })),
                     this.$render("i-vstack", { gap: '10px' },
-                        this.$render("i-button", { id: 'downloadBtn', margin: { top: 10 }, height: 42, width: '100%', font: { color: Theme.colors.primary.contrastText }, rightIcon: {
-                                name: 'spinner',
-                                spin: false,
-                                fill: Theme.colors.primary.contrastText,
-                                width: 16,
-                                height: 16,
-                                visible: false,
-                            }, caption: 'Download File', onClick: this.onExportFile }))),
+                        this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem', width: "100%" },
+                            this.$render("i-button", { id: 'captureBtn', height: 42, width: "50%", caption: 'Capture Snapshot', icon: { name: 'camera', fill: Theme.colors.primary.contrastText }, background: { color: '#4CAF50' }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
+                                    name: 'spinner',
+                                    spin: false,
+                                    fill: Theme.colors.primary.contrastText,
+                                    width: 16,
+                                    height: 16,
+                                    visible: false,
+                                }, class: 'capture-btn', enabled: false, onClick: this.onCapture }),
+                            this.$render("i-button", { id: 'downloadBtn', height: 42, width: "50%", icon: { name: 'download', fill: Theme.colors.primary.contrastText }, background: { color: '#1E88E5' }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
+                                    name: 'spinner',
+                                    spin: false,
+                                    fill: Theme.colors.primary.contrastText,
+                                    width: 16,
+                                    height: 16,
+                                    visible: false,
+                                }, caption: 'Download File', onClick: this.onExportFile })))),
                 this.$render("i-alert", { id: 'mdAlert' })));
         }
     };

@@ -18,7 +18,7 @@ import {
 import './index.css'
 import { DataSource, IConfigData, IFileData } from './interface';
 import { ModeType } from './interface';
-import { callAPI, modeOptions, fetchContentByCID, dataSourceOptions } from './utils'
+import { callAPI, modeOptions, fetchContentByCID, dataSourceOptions, getExternalLink } from './utils'
 import { comboBoxStyle, uploadStyle } from './index.css';
 const Theme = Styles.Theme.ThemeVars
 
@@ -228,6 +228,12 @@ export default class ScomChartDataSourceSetup extends Module {
 
   }
 
+  openLink() {
+    if (!this.data.dataSource || !this.data.queryId) return;
+    const link = getExternalLink(this.data.dataSource, this.data.queryId);
+    window.open(link, "_blank");
+  }
+
   init() {
     super.init()
     const queryId = this.getAttribute('queryId', true)
@@ -307,24 +313,15 @@ export default class ScomChartDataSourceSetup extends Module {
                 width='100%'
                 onChanged={this.onUpdateQueryId}
               ></i-input>
-              <i-button
-                id='captureBtn'
-                height={42}
-                caption='Capture Snapshot'
-                background={{ color: Theme.colors.primary.main }}
-                font={{ color: Theme.colors.primary.contrastText }}
-                rightIcon={{
-                  name: 'spinner',
-                  spin: false,
-                  fill: Theme.colors.primary.contrastText,
-                  width: 16,
-                  height: 16,
-                  visible: false,
-                }}
-                class='capture-btn'
-                enabled={false}
-                onClick={this.onCapture}
-              ></i-button>
+              <i-icon
+                id="btnOpenLink"
+                name="external-link-alt" fill={Theme.text.primary}
+                opacity={0.5}
+                width={25} height={25}
+                border={{ width: 1, style: 'solid', color: Theme.colors.secondary.light, radius: 4 }}
+                class="pointer"
+                onClick={this.openLink}
+              ></i-icon>
             </i-hstack>
           </i-vstack>
           <i-vstack id='pnlFile' gap={10}>
@@ -340,23 +337,46 @@ export default class ScomChartDataSourceSetup extends Module {
             ></i-upload>
           </i-vstack>
           <i-vstack gap='10px'>
-            <i-button
-              id='downloadBtn'
-              margin={{ top: 10 }}
-              height={42}
-              width='100%'
-              font={{ color: Theme.colors.primary.contrastText }}
-              rightIcon={{
-                name: 'spinner',
-                spin: false,
-                fill: Theme.colors.primary.contrastText,
-                width: 16,
-                height: 16,
-                visible: false,
-              }}
-              caption='Download File'
-              onClick={this.onExportFile}
-            ></i-button>
+            <i-hstack verticalAlignment='center' gap='0.5rem' width="100%">
+              <i-button
+                id='captureBtn'
+                height={42}
+                width="50%"
+                caption='Capture Snapshot'
+                icon={{ name: 'camera', fill: Theme.colors.primary.contrastText }}
+                background={{ color: '#4CAF50' }} //FIXME: use theme
+                font={{ color: Theme.colors.primary.contrastText }}
+                rightIcon={{
+                  name: 'spinner',
+                  spin: false,
+                  fill: Theme.colors.primary.contrastText,
+                  width: 16,
+                  height: 16,
+                  visible: false,
+                }}
+                class='capture-btn'
+                enabled={false}
+                onClick={this.onCapture}
+              ></i-button>
+              <i-button
+                id='downloadBtn'
+                height={42}
+                width="50%"
+                icon={{ name: 'download', fill: Theme.colors.primary.contrastText }}
+                background={{ color: '#1E88E5' }} //FIXME: use theme
+                font={{ color: Theme.colors.primary.contrastText }}
+                rightIcon={{
+                  name: 'spinner',
+                  spin: false,
+                  fill: Theme.colors.primary.contrastText,
+                  width: 16,
+                  height: 16,
+                  visible: false,
+                }}
+                caption='Download File'
+                onClick={this.onExportFile}
+              ></i-button>
+            </i-hstack>
           </i-vstack>
         </i-vstack>
         <i-alert id='mdAlert'></i-alert>

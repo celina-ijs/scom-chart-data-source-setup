@@ -28,6 +28,7 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
 declare module "@scom/scom-chart-data-source-setup/utils.ts" {
     import { DataSource, ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
     export const callAPI: (dataSource: DataSource, queryId: string) => Promise<any>;
+    export const getExternalLink: (dataSource: DataSource, queryId: string) => string;
     export const modeOptions: {
         label: string;
         value: ModeType;
@@ -97,6 +98,7 @@ declare module "@scom/scom-chart-data-source-setup" {
         private onUploadToIPFS;
         private onImportFile;
         private onExportFile;
+        openLink(): void;
         init(): void;
         render(): any;
     }

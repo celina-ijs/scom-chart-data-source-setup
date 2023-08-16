@@ -17,6 +17,17 @@ export const callAPI = async (dataSource: DataSource, queryId: string) => {
   return [];
 }
 
+export const getExternalLink = (dataSource: DataSource, queryId: string) => {
+  if (!dataSource) return '';
+  let link = '';
+  switch (dataSource) {
+    case DataSource.Dune:
+      link = `https://dune.com/queries/${queryId}`;
+      break;
+  }
+  return link;
+}
+
 export const modeOptions = [
   {
     label: 'Live',
