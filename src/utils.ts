@@ -1,12 +1,15 @@
-import { DataSource, ModeType } from "./interface";
+import { DataSource, IFetchDataOptions, ModeType } from "./interface";
 
-export const callAPI = async (dataSource: DataSource, queryId: string) => {
-  if (!dataSource) return [];
+export const callAPI = async (options: IFetchDataOptions) => {
+  if (!options.dataSource) return [];
   try {
     let apiEndpoint = '';
-    switch (dataSource) {
+    switch (options.dataSource) {
       case DataSource.Dune:
-        apiEndpoint = `/dune/query/${queryId}`;
+        apiEndpoint = `/dune/query/${options.queryId}`;
+        break;
+      case DataSource.Custom:
+        apiEndpoint = options.apiEndpoint;
         break;
     }
     if (!apiEndpoint) return [];
@@ -17,12 +20,15 @@ export const callAPI = async (dataSource: DataSource, queryId: string) => {
   return [];
 }
 
-export const getExternalLink = (dataSource: DataSource, queryId: string) => {
-  if (!dataSource) return '';
+export const getExternalLink = (options: IFetchDataOptions) => {
+  if (!options.dataSource) return '';
   let link = '';
-  switch (dataSource) {
+  switch (options.dataSource) {
     case DataSource.Dune:
-      link = `https://dune.com/queries/${queryId}`;
+      link = `https://dune.com/queries/${options.queryId}`;
+      break;
+    case DataSource.Custom:
+      link = options.apiEndpoint;
       break;
   }
   return link;
@@ -43,6 +49,10 @@ export const dataSourceOptions = [
   {
     label: 'Dune',
     value: DataSource.Dune
+  },
+  {
+    label: 'Custom',
+    value: DataSource.Custom
   }
 ]
 

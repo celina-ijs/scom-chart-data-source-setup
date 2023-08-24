@@ -67,20 +67,24 @@ define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"]
     var DataSource;
     (function (DataSource) {
         DataSource["Dune"] = "Dune";
+        DataSource["Custom"] = "Custom";
     })(DataSource = exports.DataSource || (exports.DataSource = {}));
 });
 define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@scom/scom-chart-data-source-setup/interface.ts"], function (require, exports, interface_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.fetchContentByCID = exports.dataSourceOptions = exports.modeOptions = exports.getExternalLink = exports.callAPI = void 0;
-    const callAPI = async (dataSource, queryId) => {
-        if (!dataSource)
+    const callAPI = async (options) => {
+        if (!options.dataSource)
             return [];
         try {
             let apiEndpoint = '';
-            switch (dataSource) {
+            switch (options.dataSource) {
                 case interface_1.DataSource.Dune:
-                    apiEndpoint = `/dune/query/${queryId}`;
+                    apiEndpoint = `/dune/query/${options.queryId}`;
+                    break;
+                case interface_1.DataSource.Custom:
+                    apiEndpoint = options.apiEndpoint;
                     break;
             }
             if (!apiEndpoint)
@@ -93,13 +97,16 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
         return [];
     };
     exports.callAPI = callAPI;
-    const getExternalLink = (dataSource, queryId) => {
-        if (!dataSource)
+    const getExternalLink = (options) => {
+        if (!options.dataSource)
             return '';
         let link = '';
-        switch (dataSource) {
+        switch (options.dataSource) {
             case interface_1.DataSource.Dune:
-                link = `https://dune.com/queries/${queryId}`;
+                link = `https://dune.com/queries/${options.queryId}`;
+                break;
+            case interface_1.DataSource.Custom:
+                link = options.apiEndpoint;
                 break;
         }
         return link;
@@ -119,6 +126,10 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
         {
             label: 'Dune',
             value: interface_1.DataSource.Dune
+        },
+        {
+            label: 'Custom',
+            value: interface_1.DataSource.Custom
         }
     ];
     const fetchContentByCID = async (ipfsCid) => {
@@ -185,13 +196,25 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         set file(value) {
             this._data.file = value;
         }
+        get fetchDataOptions() {
+            return {
+                dataSource: this.data.dataSource,
+                queryId: this.data.queryId,
+                apiEndpoint: this.data.apiEndpoint
+            };
+        }
         async onCustomDataChanged(data) {
         }
         renderUI() {
-            var _a;
+            var _a, _b;
             this.updateMode();
-            this.queryIdInput.value = (_a = this.data.queryId) !== null && _a !== void 0 ? _a : '';
-            this.captureBtn.enabled = !!this.queryIdInput.value;
+            if (this.data.dataSource === interface_2.DataSource.Dune) {
+                this.endpointInput.value = (_a = this.data.queryId) !== null && _a !== void 0 ? _a : '';
+            }
+            else if (this.data.dataSource === interface_2.DataSource.Custom) {
+                this.endpointInput.value = (_b = this.data.apiEndpoint) !== null && _b !== void 0 ? _b : '';
+            }
+            this.captureBtn.enabled = !!this.endpointInput.value;
         }
         onModeChanged() {
             this.data.mode = this.modeSelect.selectedItem.value;
@@ -200,28 +223,50 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         onDataSourceChanged() {
             this.data.dataSource = this.comboDataSource.selectedItem.value;
+            if (this.data.dataSource === interface_2.DataSource.Dune) {
+                this.lbEndpointCaption.caption = 'Query ID';
+            }
+            else if (this.data.dataSource === interface_2.DataSource.Custom) {
+                this.lbEndpointCaption.caption = 'API Endpoint';
+            }
             this.onCustomDataChanged(this.data);
         }
         async updateMode() {
             var _a;
-            const findedMode = utils_1.modeOptions.find((mode) => mode.value === this.data.mode);
-            if (findedMode)
-                this.modeSelect.selectedItem = findedMode;
+            const modeOption = utils_1.modeOptions.find((mode) => mode.value === this.data.mode);
+            if (modeOption)
+                this.modeSelect.selectedItem = modeOption;
+            const dataSourceOption = utils_1.dataSourceOptions.find((dataSource) => dataSource.value === this.data.dataSource);
+            if (dataSourceOption)
+                this.comboDataSource.selectedItem = dataSourceOption;
+            if (this.data.dataSource === interface_2.DataSource.Dune) {
+                this.lbEndpointCaption.caption = 'Query ID';
+            }
+            else if (this.data.dataSource === interface_2.DataSource.Custom) {
+                this.lbEndpointCaption.caption = 'API Endpoint';
+            }
             const isSnapshot = this.data.mode === interface_3.ModeType.SNAPSHOT;
             this.pnlDataSource.visible = !isSnapshot;
-            this.pnlQueryId.visible = !isSnapshot;
+            this.pnlEndpoint.visible = !isSnapshot;
             this.pnlUpload.visible = isSnapshot;
             this.pnlFile.visible = isSnapshot;
             this.fileNameLb.caption = `${((_a = this.data.file) === null || _a === void 0 ? void 0 : _a.cid) || ''}`;
         }
         async updateChartData() {
-            const data = this.data.dataSource ? await (0, utils_1.callAPI)(this.data.dataSource, this.data.queryId) : [];
+            const data = this.data.dataSource ? await (0, utils_1.callAPI)(this.fetchDataOptions) : [];
             this._data.chartData = JSON.stringify(data, null, 4);
         }
-        onUpdateQueryId() {
-            var _a;
-            this.data.queryId = (_a = this.queryIdInput.value) !== null && _a !== void 0 ? _a : '';
-            this.captureBtn.enabled = !!this.data.queryId;
+        onUpdateEndpoint() {
+            var _a, _b;
+            if (this.data.dataSource === interface_2.DataSource.Dune) {
+                this.data.queryId = (_a = this.endpointInput.value) !== null && _a !== void 0 ? _a : '';
+                this.data.apiEndpoint = '';
+            }
+            else if (this.data.dataSource === interface_2.DataSource.Custom) {
+                this.data.apiEndpoint = (_b = this.endpointInput.value) !== null && _b !== void 0 ? _b : '';
+                this.data.queryId = '';
+            }
+            this.captureBtn.enabled = !!this.data.queryId || !!this.data.apiEndpoint;
             this.onCustomDataChanged(this.data);
         }
         async onCapture() {
@@ -289,7 +334,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             try {
                 let chartData = this.data.chartData;
                 if (this.data.mode === interface_3.ModeType.LIVE) {
-                    chartData = JSON.stringify(this.data.dataSource ? await (0, utils_1.callAPI)(this.data.dataSource, this.data.queryId) : [], null, 4);
+                    chartData = JSON.stringify(this.data.dataSource ? await (0, utils_1.callAPI)(this.fetchDataOptions) : [], null, 4);
                 }
                 const blob = new Blob([chartData], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -307,20 +352,21 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             }
         }
         openLink() {
-            if (!this.data.dataSource || !this.data.queryId)
+            if (!this.data.dataSource || (!this.data.queryId && !this.data.apiEndpoint))
                 return;
-            const link = (0, utils_1.getExternalLink)(this.data.dataSource, this.data.queryId);
+            const link = (0, utils_1.getExternalLink)(this.fetchDataOptions);
             window.open(link, "_blank");
         }
         init() {
             super.init();
             const queryId = this.getAttribute('queryId', true);
+            const apiEndpoint = this.getAttribute('apiEndpoint', true);
             const mode = this.getAttribute('mode', true, interface_3.ModeType.LIVE);
             const dataSource = this.getAttribute('dataSource', true, interface_2.DataSource.Dune);
             const file = this.getAttribute('file', true);
             const chartData = this.getAttribute('chartData', true);
             this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
-            this.data = { mode, dataSource, queryId, file, chartData };
+            this.data = { mode, dataSource, queryId, apiEndpoint, file, chartData };
         }
         render() {
             return (this.$render("i-panel", null,
@@ -337,12 +383,12 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                             this.$render("i-label", { caption: 'Data Source' }),
                             this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
                         this.$render("i-combo-box", { id: 'comboDataSource', items: utils_1.dataSourceOptions, selectedItem: utils_1.dataSourceOptions[0], height: 42, width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onDataSourceChanged })),
-                    this.$render("i-vstack", { id: 'pnlQueryId', gap: '10px' },
+                    this.$render("i-vstack", { id: 'pnlEndpoint', gap: '10px' },
                         this.$render("i-hstack", { gap: 4 },
-                            this.$render("i-label", { caption: 'Query ID' }),
+                            this.$render("i-label", { id: "lbEndpointCaption", caption: 'Query ID' }),
                             this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
                         this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem' },
-                            this.$render("i-input", { id: 'queryIdInput', height: 42, width: '100%', onChanged: this.onUpdateQueryId }),
+                            this.$render("i-input", { id: 'endpointInput', height: 42, width: '100%', onChanged: this.onUpdateEndpoint }),
                             this.$render("i-icon", { id: "btnOpenLink", name: "external-link-alt", fill: Theme.text.primary, opacity: 0.5, width: 25, height: 25, border: { width: 1, style: 'solid', color: Theme.colors.secondary.light, radius: 4 }, class: "pointer", onClick: this.openLink }))),
                     this.$render("i-vstack", { id: 'pnlFile', gap: 10 },
                         this.$render("i-label", { caption: 'File Path' }),
