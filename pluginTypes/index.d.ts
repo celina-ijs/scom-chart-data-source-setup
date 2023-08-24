@@ -10,7 +10,8 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
         SNAPSHOT = "Snapshot"
     }
     export enum DataSource {
-        Dune = "Dune"
+        Dune = "Dune",
+        Custom = "Custom"
     }
     export interface IFileData {
         cid?: string;
@@ -19,16 +20,22 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
     export interface IConfigData {
         mode: ModeType;
         dataSource: DataSource;
-        queryId: string;
+        apiEndpoint?: string;
+        queryId?: string;
         file?: IFileData;
         chartData?: string;
+    }
+    export interface IFetchDataOptions {
+        dataSource: DataSource;
+        queryId?: string;
+        apiEndpoint?: string;
     }
 }
 /// <amd-module name="@scom/scom-chart-data-source-setup/utils.ts" />
 declare module "@scom/scom-chart-data-source-setup/utils.ts" {
-    import { DataSource, ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
-    export const callAPI: (dataSource: DataSource, queryId: string) => Promise<any>;
-    export const getExternalLink: (dataSource: DataSource, queryId: string) => string;
+    import { DataSource, IFetchDataOptions, ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
+    export const callAPI: (options: IFetchDataOptions) => Promise<any>;
+    export const getExternalLink: (options: IFetchDataOptions) => string;
     export const modeOptions: {
         label: string;
         value: ModeType;
@@ -50,6 +57,7 @@ declare module "@scom/scom-chart-data-source-setup" {
     interface ScomChartDataElement extends ControlElement {
         mode?: ModeType;
         dataSource?: DataSource;
+        apiEndpoint?: string;
         queryId?: string;
         file?: IFileData;
         onCustomDataChanged?: (data: IConfigData) => Promise<void>;
@@ -65,7 +73,7 @@ declare module "@scom/scom-chart-data-source-setup" {
         private _data;
         private modeSelect;
         private comboDataSource;
-        private queryIdInput;
+        private endpointInput;
         private captureBtn;
         private downloadBtn;
         private mdAlert;
@@ -73,8 +81,9 @@ declare module "@scom/scom-chart-data-source-setup" {
         private pnlUpload;
         private pnlFile;
         private pnlDataSource;
-        private pnlQueryId;
+        private pnlEndpoint;
         private pnlLoading;
+        private lbEndpointCaption;
         constructor(parent?: Container, options?: any);
         static create(options?: ScomChartDataElement, parent?: Container): Promise<ScomChartDataSourceSetup>;
         get data(): IConfigData;
@@ -87,13 +96,14 @@ declare module "@scom/scom-chart-data-source-setup" {
         set queryId(value: string);
         get file(): IFileData;
         set file(value: IFileData);
+        private get fetchDataOptions();
         onCustomDataChanged(data: IConfigData): Promise<void>;
         private renderUI;
         private onModeChanged;
         private onDataSourceChanged;
         private updateMode;
         private updateChartData;
-        private onUpdateQueryId;
+        private onUpdateEndpoint;
         private onCapture;
         private onUploadToIPFS;
         private onImportFile;

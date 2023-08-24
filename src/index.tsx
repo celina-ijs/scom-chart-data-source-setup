@@ -16,7 +16,7 @@ import {
   VStack
 } from '@ijstech/components'
 import './index.css'
-import { DataSource, IConfigData, IFileData } from './interface';
+import { DataSource, IConfigData, IFetchDataOptions, IFileData } from './interface';
 import { ModeType } from './interface';
 import { callAPI, modeOptions, fetchContentByCID, dataSourceOptions, getExternalLink } from './utils'
 import { comboBoxStyle, uploadStyle } from './index.css';
@@ -32,6 +32,7 @@ export {
 interface ScomChartDataElement extends ControlElement {
   mode?: ModeType;
   dataSource?: DataSource;
+  apiEndpoint? : string;
   queryId?: string;
   file?: IFileData;
   onCustomDataChanged?: (data: IConfigData) => Promise<void>;
@@ -52,7 +53,7 @@ export default class ScomChartDataSourceSetup extends Module {
 
   private modeSelect: ComboBox
   private comboDataSource: ComboBox
-  private queryIdInput: Input
+  private endpointInput: Input
   private captureBtn: Button
   private downloadBtn: Button
   private mdAlert: Alert
@@ -60,8 +61,9 @@ export default class ScomChartDataSourceSetup extends Module {
   private pnlUpload: VStack
   private pnlFile: VStack
   private pnlDataSource: VStack
-  private pnlQueryId: VStack
+  private pnlEndpoint: VStack
   private pnlLoading: VStack
+  private lbEndpointCaption: Label
 
   constructor(parent?: Container, options?: any) {
     super(parent, options)
@@ -110,13 +112,26 @@ export default class ScomChartDataSourceSetup extends Module {
     this._data.file = value
   }
 
+  private get fetchDataOptions(): IFetchDataOptions {
+    return {
+      dataSource: this.data.dataSource,
+      queryId: this.data.queryId,
+      apiEndpoint: this.data.apiEndpoint
+    }
+  }
+  
   async onCustomDataChanged(data: IConfigData) {
   }
 
   private renderUI() {
     this.updateMode()
-    this.queryIdInput.value = this.data.queryId ?? ''
-    this.captureBtn.enabled = !!this.queryIdInput.value
+    if (this.data.dataSource === DataSource.Dune) {
+      this.endpointInput.value = this.data.queryId ?? ''
+    }
+    else if (this.data.dataSource === DataSource.Custom) {
+      this.endpointInput.value = this.data.apiEndpoint ?? ''
+    }
+    this.captureBtn.enabled = !!this.endpointInput.value
   }
 
   private onModeChanged() {
@@ -126,29 +141,50 @@ export default class ScomChartDataSourceSetup extends Module {
   }
 
   private onDataSourceChanged() {
-    this.data.dataSource = (this.comboDataSource.selectedItem as IComboItem).value as DataSource
+    this.data.dataSource = (this.comboDataSource.selectedItem as IComboItem).value as DataSource;
+    if (this.data.dataSource === DataSource.Dune) {
+      this.lbEndpointCaption.caption = 'Query ID'
+    }
+    else if (this.data.dataSource === DataSource.Custom) {
+      this.lbEndpointCaption.caption = 'API Endpoint'
+    }
     this.onCustomDataChanged(this.data);
   }
 
   private async updateMode() {
-    const findedMode = modeOptions.find((mode) => mode.value === this.data.mode)
-    if (findedMode) this.modeSelect.selectedItem = findedMode
+    const modeOption = modeOptions.find((mode) => mode.value === this.data.mode)
+    if (modeOption) this.modeSelect.selectedItem = modeOption
+    const dataSourceOption = dataSourceOptions.find((dataSource) => dataSource.value === this.data.dataSource)
+    if (dataSourceOption) this.comboDataSource.selectedItem = dataSourceOption
+    if (this.data.dataSource === DataSource.Dune) {
+      this.lbEndpointCaption.caption = 'Query ID'
+    }
+    else if (this.data.dataSource === DataSource.Custom) {
+      this.lbEndpointCaption.caption = 'API Endpoint'
+    }
     const isSnapshot = this.data.mode === ModeType.SNAPSHOT
     this.pnlDataSource.visible = !isSnapshot
-    this.pnlQueryId.visible = !isSnapshot
+    this.pnlEndpoint.visible = !isSnapshot
     this.pnlUpload.visible = isSnapshot
     this.pnlFile.visible = isSnapshot
     this.fileNameLb.caption = `${this.data.file?.cid || ''}`
   }
 
   private async updateChartData() {
-    const data = this.data.dataSource ? await callAPI(this.data.dataSource, this.data.queryId) : [];
+    const data = this.data.dataSource ? await callAPI(this.fetchDataOptions) : [];
     this._data.chartData = JSON.stringify(data, null, 4);
   }
 
-  private onUpdateQueryId() {
-    this.data.queryId = this.queryIdInput.value ?? ''
-    this.captureBtn.enabled = !!this.data.queryId
+  private onUpdateEndpoint() {
+    if (this.data.dataSource === DataSource.Dune) {
+      this.data.queryId = this.endpointInput.value ?? '';
+      this.data.apiEndpoint = '';
+    }
+    else if (this.data.dataSource === DataSource.Custom) {
+      this.data.apiEndpoint = this.endpointInput.value ?? '';
+      this.data.queryId = '';
+    }
+    this.captureBtn.enabled = !!this.data.queryId || !!this.data.apiEndpoint;
     this.onCustomDataChanged(this.data);
   }
 
@@ -211,7 +247,7 @@ export default class ScomChartDataSourceSetup extends Module {
     try {
       let chartData = this.data.chartData;
       if (this.data.mode === ModeType.LIVE) {
-        chartData = JSON.stringify(this.data.dataSource ? await callAPI(this.data.dataSource, this.data.queryId) : [], null, 4);
+        chartData = JSON.stringify(this.data.dataSource ? await callAPI(this.fetchDataOptions) : [], null, 4);
       }
       const blob = new Blob([chartData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -229,20 +265,21 @@ export default class ScomChartDataSourceSetup extends Module {
   }
 
   openLink() {
-    if (!this.data.dataSource || !this.data.queryId) return;
-    const link = getExternalLink(this.data.dataSource, this.data.queryId);
+    if (!this.data.dataSource || (!this.data.queryId && !this.data.apiEndpoint)) return;
+    const link = getExternalLink(this.fetchDataOptions);
     window.open(link, "_blank");
   }
 
   init() {
     super.init()
     const queryId = this.getAttribute('queryId', true)
+    const apiEndpoint = this.getAttribute('apiEndpoint', true)
     const mode = this.getAttribute('mode', true, ModeType.LIVE)
     const dataSource = this.getAttribute('dataSource', true, DataSource.Dune);
     const file = this.getAttribute('file', true)
     const chartData = this.getAttribute('chartData', true)
     this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
-    this.data = {mode, dataSource, queryId, file, chartData}
+    this.data = {mode, dataSource, queryId, apiEndpoint, file, chartData}
   }
 
   render() {
@@ -301,17 +338,17 @@ export default class ScomChartDataSourceSetup extends Module {
               onChanged={this.onDataSourceChanged}
             ></i-combo-box>
           </i-vstack>
-          <i-vstack id='pnlQueryId' gap='10px'>
+          <i-vstack id='pnlEndpoint' gap='10px'>
             <i-hstack gap={4}>
-              <i-label caption='Query ID'></i-label>
+              <i-label id="lbEndpointCaption" caption='Query ID'></i-label>
               <i-label caption='*' font={{ color: '#ff0000' }}></i-label>
             </i-hstack>
             <i-hstack verticalAlignment='center' gap='0.5rem'>
               <i-input
-                id='queryIdInput'
+                id='endpointInput'
                 height={42}
                 width='100%'
-                onChanged={this.onUpdateQueryId}
+                onChanged={this.onUpdateEndpoint}
               ></i-input>
               <i-icon
                 id="btnOpenLink"

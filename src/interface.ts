@@ -5,6 +5,7 @@ export enum ModeType {
 
 export enum DataSource {
   Dune = "Dune",
+  Custom = "Custom"
 }
 
 export interface IFileData {
@@ -15,7 +16,14 @@ export interface IFileData {
 export interface IConfigData {
   mode: ModeType;
   dataSource: DataSource;
-  queryId: string;
+  apiEndpoint?: string;
+  queryId?: string;
   file?: IFileData;
   chartData?: string;
+}
+
+export interface IFetchDataOptions {
+  dataSource: DataSource;
+  queryId?: string;
+  apiEndpoint?: string;
 }
