@@ -75,8 +75,9 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.fetchContentByCID = exports.dataSourceOptions = exports.modeOptions = exports.getExternalLink = exports.callAPI = void 0;
     const callAPI = async (options) => {
+        const defaultData = { metadata: { columns_name: [] }, rows: [] };
         if (!options.dataSource)
-            return [];
+            return defaultData;
         try {
             let apiEndpoint = '';
             switch (options.dataSource) {
@@ -88,13 +89,13 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
                     break;
             }
             if (!apiEndpoint)
-                return [];
+                return defaultData;
             const response = await fetch(apiEndpoint);
             const jsonData = await response.json();
-            return jsonData.result.rows || [];
+            return jsonData.result || defaultData;
         }
         catch (_a) { }
-        return [];
+        return defaultData;
     };
     exports.callAPI = callAPI;
     const getExternalLink = (options) => {
@@ -135,10 +136,13 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
     const fetchContentByCID = async (ipfsCid) => {
         let res = null;
         try {
-            // const ipfsBaseUrl = `${window.location.origin}/ipfs/`;
             const ipfsBaseUrl = `/ipfs/`;
             res = await fetch(ipfsBaseUrl + ipfsCid);
-            return await res.json();
+            const jsonData = await res.json();
+            if (Array.isArray(jsonData)) {
+                return { metadata: { column_names: Object.keys(jsonData[0] || {}) }, rows: jsonData };
+            }
+            return jsonData;
         }
         catch (err) {
         }

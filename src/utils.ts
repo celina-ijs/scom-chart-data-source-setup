@@ -1,7 +1,8 @@
 import { DataSource, IFetchDataOptions, ModeType } from "./interface";
 
 export const callAPI = async (options: IFetchDataOptions) => {
-  if (!options.dataSource) return [];
+  const defaultData = { metadata: { columns_name: [] }, rows: [] };
+  if (!options.dataSource) return defaultData;
   try {
     let apiEndpoint = '';
     switch (options.dataSource) {
@@ -12,12 +13,12 @@ export const callAPI = async (options: IFetchDataOptions) => {
         apiEndpoint = options.apiEndpoint;
         break;
     }
-    if (!apiEndpoint) return [];
+    if (!apiEndpoint) return defaultData;
     const response = await fetch(apiEndpoint);
     const jsonData = await response.json();
-    return jsonData.result.rows || [];
+    return jsonData.result || defaultData;
   } catch {}
-  return [];
+  return defaultData;
 }
 
 export const getExternalLink = (options: IFetchDataOptions) => {
@@ -59,10 +60,13 @@ export const dataSourceOptions = [
 export const fetchContentByCID = async (ipfsCid: string) => {
   let res = null;
   try {
-    // const ipfsBaseUrl = `${window.location.origin}/ipfs/`;
-    const ipfsBaseUrl = `/ipfs/`
+    const ipfsBaseUrl = `/ipfs/`;
     res = await fetch(ipfsBaseUrl + ipfsCid);
-    return await res.json();
+    const jsonData = await res.json();
+    if (Array.isArray(jsonData)) {
+      return { metadata: { column_names: Object.keys(jsonData[0] || {}) }, rows: jsonData }
+    }
+    return jsonData;
   } catch (err) {
   }
   return res;
