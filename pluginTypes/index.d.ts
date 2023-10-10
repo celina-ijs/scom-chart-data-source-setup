@@ -11,6 +11,7 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
     }
     export enum DataSource {
         Dune = "Dune",
+        Flipside = "Flipside",
         Custom = "Custom"
     }
     export interface IFileData {

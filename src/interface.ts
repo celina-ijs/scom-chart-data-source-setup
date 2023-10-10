@@ -5,6 +5,7 @@ export enum ModeType {
 
 export enum DataSource {
   Dune = "Dune",
+  Flipside = "Flipside",
   Custom = "Custom"
 }
 

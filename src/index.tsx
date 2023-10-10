@@ -125,7 +125,7 @@ export default class ScomChartDataSourceSetup extends Module {
 
   private renderUI() {
     this.updateMode()
-    if (this.data.dataSource === DataSource.Dune) {
+    if ([DataSource.Dune, DataSource.Flipside].includes(this.data.dataSource)) {
       this.endpointInput.value = this.data.queryId ?? ''
     }
     else if (this.data.dataSource === DataSource.Custom) {
@@ -142,7 +142,7 @@ export default class ScomChartDataSourceSetup extends Module {
 
   private onDataSourceChanged() {
     this.data.dataSource = (this.comboDataSource.selectedItem as IComboItem).value as DataSource;
-    if (this.data.dataSource === DataSource.Dune) {
+    if ([DataSource.Dune, DataSource.Flipside].includes(this.data.dataSource)) {
       this.lbEndpointCaption.caption = 'Query ID'
     }
     else if (this.data.dataSource === DataSource.Custom) {
@@ -156,7 +156,7 @@ export default class ScomChartDataSourceSetup extends Module {
     if (modeOption) this.modeSelect.selectedItem = modeOption
     const dataSourceOption = dataSourceOptions.find((dataSource) => dataSource.value === this.data.dataSource)
     if (dataSourceOption) this.comboDataSource.selectedItem = dataSourceOption
-    if (this.data.dataSource === DataSource.Dune) {
+    if ([DataSource.Dune, DataSource.Flipside].includes(this.data.dataSource)) {
       this.lbEndpointCaption.caption = 'Query ID'
     }
     else if (this.data.dataSource === DataSource.Custom) {
@@ -176,7 +176,7 @@ export default class ScomChartDataSourceSetup extends Module {
   }
 
   private onUpdateEndpoint() {
-    if (this.data.dataSource === DataSource.Dune) {
+    if ([DataSource.Dune, DataSource.Flipside].includes(this.data.dataSource)) {
       this.data.queryId = this.endpointInput.value ?? '';
       this.data.apiEndpoint = '';
     }

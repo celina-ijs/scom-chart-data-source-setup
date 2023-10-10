@@ -9,6 +9,9 @@ export const callAPI = async (options: IFetchDataOptions) => {
       case DataSource.Dune:
         apiEndpoint = `/dune/query/${options.queryId}`;
         break;
+      case DataSource.Flipside:
+        apiEndpoint = `/flipside/query/${options.queryId}`;
+        break;
       case DataSource.Custom:
         apiEndpoint = options.apiEndpoint;
         break;
@@ -16,8 +19,18 @@ export const callAPI = async (options: IFetchDataOptions) => {
     if (!apiEndpoint) return defaultData;
     const response = await fetch(apiEndpoint);
     const jsonData = await response.json();
+    if (DataSource.Custom && apiEndpoint.includes('flipsidecrypto')) {
+      let result = { rows: [], metadata: { column_names: [] } };
+      if (jsonData?.length) {
+        result = {
+          metadata: { column_names: Object.keys(jsonData[0]) },
+          rows: jsonData
+        }
+      }
+      return result;
+    }
     return jsonData.result || defaultData;
-  } catch {}
+  } catch { }
   return defaultData;
 }
 
@@ -27,6 +40,9 @@ export const getExternalLink = (options: IFetchDataOptions) => {
   switch (options.dataSource) {
     case DataSource.Dune:
       link = `https://dune.com/queries/${options.queryId}`;
+      break;
+    case DataSource.Flipside:
+      link = `https://api.flipsidecrypto.com/api/v2/queries/${options.queryId}/data/latest`;
       break;
     case DataSource.Custom:
       link = options.apiEndpoint;
@@ -50,6 +66,10 @@ export const dataSourceOptions = [
   {
     label: 'Dune',
     value: DataSource.Dune
+  },
+  {
+    label: 'Flipside',
+    value: DataSource.Flipside
   },
   {
     label: 'Custom',

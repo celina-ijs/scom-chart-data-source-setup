@@ -67,6 +67,7 @@ define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"]
     var DataSource;
     (function (DataSource) {
         DataSource["Dune"] = "Dune";
+        DataSource["Flipside"] = "Flipside";
         DataSource["Custom"] = "Custom";
     })(DataSource = exports.DataSource || (exports.DataSource = {}));
 });
@@ -84,6 +85,9 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
                 case interface_1.DataSource.Dune:
                     apiEndpoint = `/dune/query/${options.queryId}`;
                     break;
+                case interface_1.DataSource.Flipside:
+                    apiEndpoint = `/flipside/query/${options.queryId}`;
+                    break;
                 case interface_1.DataSource.Custom:
                     apiEndpoint = options.apiEndpoint;
                     break;
@@ -92,6 +96,16 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
                 return defaultData;
             const response = await fetch(apiEndpoint);
             const jsonData = await response.json();
+            if (interface_1.DataSource.Custom && apiEndpoint.includes('flipsidecrypto')) {
+                let result = { rows: [], metadata: { column_names: [] } };
+                if (jsonData === null || jsonData === void 0 ? void 0 : jsonData.length) {
+                    result = {
+                        metadata: { column_names: Object.keys(jsonData[0]) },
+                        rows: jsonData
+                    };
+                }
+                return result;
+            }
             return jsonData.result || defaultData;
         }
         catch (_a) { }
@@ -105,6 +119,9 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
         switch (options.dataSource) {
             case interface_1.DataSource.Dune:
                 link = `https://dune.com/queries/${options.queryId}`;
+                break;
+            case interface_1.DataSource.Flipside:
+                link = `https://api.flipsidecrypto.com/api/v2/queries/${options.queryId}/data/latest`;
                 break;
             case interface_1.DataSource.Custom:
                 link = options.apiEndpoint;
@@ -127,6 +144,10 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
         {
             label: 'Dune',
             value: interface_1.DataSource.Dune
+        },
+        {
+            label: 'Flipside',
+            value: interface_1.DataSource.Flipside
         },
         {
             label: 'Custom',
@@ -212,7 +233,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         renderUI() {
             var _a, _b;
             this.updateMode();
-            if (this.data.dataSource === interface_2.DataSource.Dune) {
+            if ([interface_2.DataSource.Dune, interface_2.DataSource.Flipside].includes(this.data.dataSource)) {
                 this.endpointInput.value = (_a = this.data.queryId) !== null && _a !== void 0 ? _a : '';
             }
             else if (this.data.dataSource === interface_2.DataSource.Custom) {
@@ -227,7 +248,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         onDataSourceChanged() {
             this.data.dataSource = this.comboDataSource.selectedItem.value;
-            if (this.data.dataSource === interface_2.DataSource.Dune) {
+            if ([interface_2.DataSource.Dune, interface_2.DataSource.Flipside].includes(this.data.dataSource)) {
                 this.lbEndpointCaption.caption = 'Query ID';
             }
             else if (this.data.dataSource === interface_2.DataSource.Custom) {
@@ -243,7 +264,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             const dataSourceOption = utils_1.dataSourceOptions.find((dataSource) => dataSource.value === this.data.dataSource);
             if (dataSourceOption)
                 this.comboDataSource.selectedItem = dataSourceOption;
-            if (this.data.dataSource === interface_2.DataSource.Dune) {
+            if ([interface_2.DataSource.Dune, interface_2.DataSource.Flipside].includes(this.data.dataSource)) {
                 this.lbEndpointCaption.caption = 'Query ID';
             }
             else if (this.data.dataSource === interface_2.DataSource.Custom) {
@@ -262,7 +283,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         onUpdateEndpoint() {
             var _a, _b;
-            if (this.data.dataSource === interface_2.DataSource.Dune) {
+            if ([interface_2.DataSource.Dune, interface_2.DataSource.Flipside].includes(this.data.dataSource)) {
                 this.data.queryId = (_a = this.endpointInput.value) !== null && _a !== void 0 ? _a : '';
                 this.data.apiEndpoint = '';
             }
