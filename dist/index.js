@@ -57,7 +57,7 @@ define("@scom/scom-chart-data-source-setup/index.css.ts", ["require", "exports",
 define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.DataSource = exports.ModeType = void 0;
+    exports.ChartType = exports.DataSource = exports.ModeType = void 0;
     ///<amd-module name='@scom/scom-chart-data-source-setup/interface.ts'/> 
     var ModeType;
     (function (ModeType) {
@@ -70,11 +70,22 @@ define("@scom/scom-chart-data-source-setup/interface.ts", ["require", "exports"]
         DataSource["Flipside"] = "Flipside";
         DataSource["Custom"] = "Custom";
     })(DataSource = exports.DataSource || (exports.DataSource = {}));
+    var ChartType;
+    (function (ChartType) {
+        ChartType["Counter"] = "scom-counter";
+        ChartType["Table"] = "scom-table";
+        ChartType["Pie"] = "scom-pie-chart";
+        ChartType["Bar"] = "scom-bar-chart";
+        ChartType["Line"] = "scom-line-chart";
+        ChartType["Area"] = "scom-area-chart";
+        ChartType["Scatter"] = "scom-scatter-chart";
+        ChartType["Mixed"] = "scom-mixed-chart";
+    })(ChartType = exports.ChartType || (exports.ChartType = {}));
 });
 define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@scom/scom-chart-data-source-setup/interface.ts"], function (require, exports, interface_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.fetchContentByCID = exports.dataSourceOptions = exports.modeOptions = exports.getExternalLink = exports.callAPI = void 0;
+    exports.fetchContentByCID = exports.chartOptions = exports.dataSourceOptions = exports.modeOptions = exports.getExternalLink = exports.callAPI = void 0;
     const callAPI = async (options) => {
         const defaultData = { metadata: { columns_name: [] }, rows: [] };
         if (!options.dataSource)
@@ -154,6 +165,40 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
             value: interface_1.DataSource.Custom
         }
     ];
+    exports.chartOptions = [
+        {
+            label: 'Counter',
+            value: interface_1.ChartType.Counter
+        },
+        {
+            label: 'Table',
+            value: interface_1.ChartType.Table
+        },
+        {
+            label: 'Pie Chart',
+            value: interface_1.ChartType.Pie
+        },
+        {
+            label: 'Bar Chart',
+            value: interface_1.ChartType.Bar
+        },
+        {
+            label: 'Line Chart',
+            value: interface_1.ChartType.Line
+        },
+        {
+            label: 'Area Chart',
+            value: interface_1.ChartType.Area
+        },
+        {
+            label: 'Scatter Chart',
+            value: interface_1.ChartType.Scatter
+        },
+        {
+            label: 'Mixed Chart',
+            value: interface_1.ChartType.Mixed
+        }
+    ];
     const fetchContentByCID = async (ipfsCid) => {
         let res = null;
         try {
@@ -174,7 +219,8 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
 define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/components", "@scom/scom-chart-data-source-setup/interface.ts", "@scom/scom-chart-data-source-setup/interface.ts", "@scom/scom-chart-data-source-setup/utils.ts", "@scom/scom-chart-data-source-setup/index.css.ts", "@scom/scom-chart-data-source-setup/index.css.ts"], function (require, exports, components_2, interface_2, interface_3, utils_1, index_css_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.DataSource = exports.ModeType = exports.callAPI = exports.fetchContentByCID = void 0;
+    exports.ChartType = exports.DataSource = exports.ModeType = exports.callAPI = exports.fetchContentByCID = void 0;
+    Object.defineProperty(exports, "ChartType", { enumerable: true, get: function () { return interface_2.ChartType; } });
     Object.defineProperty(exports, "DataSource", { enumerable: true, get: function () { return interface_2.DataSource; } });
     Object.defineProperty(exports, "ModeType", { enumerable: true, get: function () { return interface_3.ModeType; } });
     Object.defineProperty(exports, "callAPI", { enumerable: true, get: function () { return utils_1.callAPI; } });
@@ -230,6 +276,8 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         async onCustomDataChanged(data) {
         }
+        async onCustomChartTypeChanged(value) {
+        }
         renderUI() {
             var _a, _b;
             this.updateMode();
@@ -240,6 +288,17 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                 this.endpointInput.value = (_b = this.data.apiEndpoint) !== null && _b !== void 0 ? _b : '';
             }
             this.captureBtn.enabled = !!this.endpointInput.value;
+            if (this.isChartTypeShown) {
+                this.chartSelect.selectedItem = utils_1.chartOptions.find((opt) => opt.value === this.data.chartType);
+                this.currentChartType = this.data.chartType;
+            }
+        }
+        onChartChanged() {
+            const type = this.chartSelect.selectedItem.value;
+            if (!this.isChartTypeShown || this.currentChartType === type)
+                return;
+            this.currentChartType = type;
+            this.onCustomChartTypeChanged(type);
         }
         onModeChanged() {
             this.data.mode = this.modeSelect.selectedItem.value;
@@ -384,6 +443,9 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         }
         init() {
             super.init();
+            this.isChartTypeShown = this.getAttribute('isChartTypeShown', true, false);
+            this.vstackChartType.visible = this.isChartTypeShown;
+            const chartType = this.getAttribute('chartType', true, interface_2.ChartType.Counter);
             const queryId = this.getAttribute('queryId', true);
             const apiEndpoint = this.getAttribute('apiEndpoint', true);
             const mode = this.getAttribute('mode', true, interface_3.ModeType.LIVE);
@@ -391,52 +453,56 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             const file = this.getAttribute('file', true);
             const chartData = this.getAttribute('chartData', true);
             this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
-            this.data = { mode, dataSource, queryId, apiEndpoint, file, chartData };
+            this.onCustomChartTypeChanged = this.getAttribute('onCustomChartTypeChanged', true);
+            this.data = { chartType, mode, dataSource, queryId, apiEndpoint, file, chartData };
         }
         render() {
             return (this.$render("i-panel", null,
                 this.$render("i-vstack", { id: 'pnlLoading', visible: false, width: '100%', height: "100%", class: 'i-loading-overlay' },
                     this.$render("i-vstack", { class: 'i-loading-spinner', horizontalAlignment: 'center', verticalAlignment: 'center' },
-                        this.$render("i-icon", { class: 'i-loading-spinner_icon', name: 'spinner', width: 24, height: 24, fill: Theme.colors.primary.main }),
+                        this.$render("i-icon", { class: 'i-loading-spinner_icon', name: 'spinner', width: '1.5rem', height: '1.5rem', fill: Theme.colors.primary.main }),
                         this.$render("i-label", { caption: 'Loading...', font: { color: Theme.colors.primary.main, size: '1rem' }, class: 'i-loading-spinner_text' }))),
-                this.$render("i-vstack", { gap: '10px' },
-                    this.$render("i-vstack", { gap: '10px' },
+                this.$render("i-vstack", { gap: '0.625rem' },
+                    this.$render("i-vstack", { id: 'vstackChartType', visible: false, gap: '0.625rem' },
+                        this.$render("i-label", { caption: 'Chart Type' }),
+                        this.$render("i-combo-box", { id: 'chartSelect', items: utils_1.chartOptions, selectedItem: utils_1.chartOptions[0], height: '2.625rem', width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onChartChanged })),
+                    this.$render("i-vstack", { gap: '0.625rem' },
                         this.$render("i-label", { caption: 'Mode' }),
-                        this.$render("i-combo-box", { id: 'modeSelect', items: utils_1.modeOptions, selectedItem: utils_1.modeOptions[0], height: 42, width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onModeChanged })),
-                    this.$render("i-vstack", { id: 'pnlDataSource', gap: '10px' },
-                        this.$render("i-hstack", { gap: 4 },
+                        this.$render("i-combo-box", { id: 'modeSelect', items: utils_1.modeOptions, selectedItem: utils_1.modeOptions[0], height: '2.625rem', width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onModeChanged })),
+                    this.$render("i-vstack", { id: 'pnlDataSource', gap: '0.625rem' },
+                        this.$render("i-hstack", { gap: '0.25rem' },
                             this.$render("i-label", { caption: 'Data Source' }),
                             this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
-                        this.$render("i-combo-box", { id: 'comboDataSource', items: utils_1.dataSourceOptions, selectedItem: utils_1.dataSourceOptions[0], height: 42, width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onDataSourceChanged })),
-                    this.$render("i-vstack", { id: 'pnlEndpoint', gap: '10px' },
-                        this.$render("i-hstack", { gap: 4 },
+                        this.$render("i-combo-box", { id: 'comboDataSource', items: utils_1.dataSourceOptions, selectedItem: utils_1.dataSourceOptions[0], height: '2.625rem', width: '100%', class: index_css_1.comboBoxStyle, onChanged: this.onDataSourceChanged })),
+                    this.$render("i-vstack", { id: 'pnlEndpoint', gap: '0.625rem' },
+                        this.$render("i-hstack", { gap: "0.25rem" },
                             this.$render("i-label", { id: "lbEndpointCaption", caption: 'Query ID' }),
                             this.$render("i-label", { caption: '*', font: { color: '#ff0000' } })),
                         this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem' },
-                            this.$render("i-input", { id: 'endpointInput', height: 42, width: '100%', onChanged: this.onUpdateEndpoint }),
-                            this.$render("i-icon", { id: "btnOpenLink", name: "external-link-alt", fill: Theme.text.primary, opacity: 0.5, width: 25, height: 25, border: { width: 1, style: 'solid', color: Theme.colors.secondary.light, radius: 4 }, class: "pointer", onClick: this.openLink }))),
-                    this.$render("i-vstack", { id: 'pnlFile', gap: 10 },
+                            this.$render("i-input", { id: 'endpointInput', height: "2.625rem", width: '100%', onChanged: this.onUpdateEndpoint }),
+                            this.$render("i-icon", { id: "btnOpenLink", name: "external-link-alt", fill: Theme.text.primary, opacity: 0.5, width: "1.5rem", height: "1.5rem", border: { width: 1, style: 'solid', color: Theme.colors.secondary.light, radius: 4 }, class: "pointer", onClick: this.openLink }))),
+                    this.$render("i-vstack", { id: 'pnlFile', gap: '0.625rem' },
                         this.$render("i-label", { caption: 'File Path' }),
                         this.$render("i-label", { id: 'fileNameLb', caption: '' })),
-                    this.$render("i-vstack", { id: 'pnlUpload', gap: '10px' },
+                    this.$render("i-vstack", { id: 'pnlUpload', gap: '0.625rem' },
                         this.$render("i-label", { caption: 'Upload' }),
                         this.$render("i-upload", { width: '100%', onChanged: this.onImportFile, class: index_css_1.uploadStyle })),
-                    this.$render("i-vstack", { gap: '10px' },
+                    this.$render("i-vstack", { gap: '0.625rem' },
                         this.$render("i-hstack", { verticalAlignment: 'center', gap: '0.5rem', width: "100%" },
-                            this.$render("i-button", { id: 'captureBtn', height: 42, width: "50%", caption: 'Capture Snapshot', icon: { name: 'camera', fill: Theme.colors.primary.contrastText }, background: { color: '#4CAF50' }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
+                            this.$render("i-button", { id: 'captureBtn', height: '2.625rem', width: "50%", caption: 'Capture Snapshot', icon: { name: 'camera', fill: Theme.colors.primary.contrastText }, background: { color: '#4CAF50' }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
                                     name: 'spinner',
                                     spin: false,
                                     fill: Theme.colors.primary.contrastText,
-                                    width: 16,
-                                    height: 16,
+                                    width: '1rem',
+                                    height: '1rem',
                                     visible: false,
                                 }, class: 'capture-btn', enabled: false, onClick: this.onCapture }),
-                            this.$render("i-button", { id: 'downloadBtn', height: 42, width: "50%", icon: { name: 'download', fill: Theme.colors.primary.contrastText }, background: { color: '#1E88E5' }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
+                            this.$render("i-button", { id: 'downloadBtn', height: '2.625rem', width: "50%", icon: { name: 'download', fill: Theme.colors.primary.contrastText }, background: { color: '#1E88E5' }, font: { color: Theme.colors.primary.contrastText }, rightIcon: {
                                     name: 'spinner',
                                     spin: false,
                                     fill: Theme.colors.primary.contrastText,
-                                    width: 16,
-                                    height: 16,
+                                    width: '1rem',
+                                    height: '1rem',
                                     visible: false,
                                 }, caption: 'Download File', onClick: this.onExportFile })))),
                 this.$render("i-alert", { id: 'mdAlert' })));

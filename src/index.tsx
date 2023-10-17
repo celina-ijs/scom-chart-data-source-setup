@@ -16,9 +16,9 @@ import {
   VStack
 } from '@ijstech/components'
 import './index.css'
-import { DataSource, IConfigData, IFetchDataOptions, IFileData } from './interface';
+import { ChartType, DataSource, IConfigData, IFetchDataOptions, IFileData } from './interface';
 import { ModeType } from './interface';
-import { callAPI, modeOptions, fetchContentByCID, dataSourceOptions, getExternalLink } from './utils'
+import { callAPI, modeOptions, fetchContentByCID, dataSourceOptions, getExternalLink, chartOptions } from './utils'
 import { comboBoxStyle, uploadStyle } from './index.css';
 const Theme = Styles.Theme.ThemeVars
 
@@ -26,16 +26,20 @@ export {
   fetchContentByCID,
   callAPI,
   ModeType,
-  DataSource
+  DataSource,
+  ChartType
 }
 
 interface ScomChartDataElement extends ControlElement {
+  chartType?: ChartType;
+  isChartTypeShown?: boolean;
   mode?: ModeType;
   dataSource?: DataSource;
-  apiEndpoint? : string;
+  apiEndpoint?: string;
   queryId?: string;
   file?: IFileData;
   onCustomDataChanged?: (data: IConfigData) => Promise<void>;
+  onCustomChartTypeChanged?: (data: IConfigData) => Promise<void>;
 }
 
 declare global {
@@ -50,7 +54,11 @@ declare global {
 @customElements('i-scom-chart-data-source-setup')
 export default class ScomChartDataSourceSetup extends Module {
   private _data: IConfigData
+  private isChartTypeShown: boolean;
+  private currentChartType: ChartType;
 
+  private vstackChartType: VStack
+  private chartSelect: ComboBox
   private modeSelect: ComboBox
   private comboDataSource: ComboBox
   private endpointInput: Input
@@ -119,8 +127,11 @@ export default class ScomChartDataSourceSetup extends Module {
       apiEndpoint: this.data.apiEndpoint
     }
   }
-  
+
   async onCustomDataChanged(data: IConfigData) {
+  }
+
+  async onCustomChartTypeChanged(value: ChartType) {
   }
 
   private renderUI() {
@@ -132,6 +143,17 @@ export default class ScomChartDataSourceSetup extends Module {
       this.endpointInput.value = this.data.apiEndpoint ?? ''
     }
     this.captureBtn.enabled = !!this.endpointInput.value
+    if (this.isChartTypeShown) {
+      this.chartSelect.selectedItem = chartOptions.find((opt) => opt.value === this.data.chartType);
+      this.currentChartType = this.data.chartType;
+    }
+  }
+
+  private onChartChanged() {
+    const type = (this.chartSelect.selectedItem as IComboItem).value as ChartType;
+    if (!this.isChartTypeShown || this.currentChartType === type) return;
+    this.currentChartType = type;
+    this.onCustomChartTypeChanged(type);
   }
 
   private onModeChanged() {
@@ -197,7 +219,7 @@ export default class ScomChartDataSourceSetup extends Module {
       await this.updateChartData()
       if (this._data.chartData?.length)
         await this.onUploadToIPFS()
-    } catch(err) {
+    } catch (err) {
     }
     finally {
       // this.captureBtn.rightIcon.spin = false
@@ -256,7 +278,7 @@ export default class ScomChartDataSourceSetup extends Module {
       a.download = 'chart_data.json';
       a.click();
       URL.revokeObjectURL(url);
-    } catch(err) {
+    } catch (err) {
     } finally {
       this.downloadBtn.rightIcon.spin = false
       this.downloadBtn.rightIcon.visible = false
@@ -272,6 +294,9 @@ export default class ScomChartDataSourceSetup extends Module {
 
   init() {
     super.init()
+    this.isChartTypeShown = this.getAttribute('isChartTypeShown', true, false);
+    this.vstackChartType.visible = this.isChartTypeShown;
+    const chartType = this.getAttribute('chartType', true, ChartType.Counter);
     const queryId = this.getAttribute('queryId', true)
     const apiEndpoint = this.getAttribute('apiEndpoint', true)
     const mode = this.getAttribute('mode', true, ModeType.LIVE)
@@ -279,7 +304,8 @@ export default class ScomChartDataSourceSetup extends Module {
     const file = this.getAttribute('file', true)
     const chartData = this.getAttribute('chartData', true)
     this.onCustomDataChanged = this.getAttribute('onCustomDataChanged', true);
-    this.data = {mode, dataSource, queryId, apiEndpoint, file, chartData}
+    this.onCustomChartTypeChanged = this.getAttribute('onCustomChartTypeChanged', true);
+    this.data = { chartType, mode, dataSource, queryId, apiEndpoint, file, chartData };
   }
 
   render() {
@@ -299,8 +325,8 @@ export default class ScomChartDataSourceSetup extends Module {
             <i-icon
               class='i-loading-spinner_icon'
               name='spinner'
-              width={24}
-              height={24}
+              width='1.5rem'
+              height='1.5rem'
               fill={Theme.colors.primary.main}
             />
             <i-label
@@ -310,74 +336,86 @@ export default class ScomChartDataSourceSetup extends Module {
             />
           </i-vstack>
         </i-vstack>
-        <i-vstack gap='10px'>
-          <i-vstack gap='10px'>
-            <i-label caption='Mode'></i-label>
+        <i-vstack gap='0.625rem'>
+          <i-vstack id='vstackChartType' visible={false} gap='0.625rem'>
+            <i-label caption='Chart Type' />
+            <i-combo-box
+              id='chartSelect'
+              items={chartOptions}
+              selectedItem={chartOptions[0]}
+              height='2.625rem'
+              width='100%'
+              class={comboBoxStyle}
+              onChanged={this.onChartChanged}
+            />
+          </i-vstack>
+          <i-vstack gap='0.625rem'>
+            <i-label caption='Mode' />
             <i-combo-box
               id='modeSelect'
               items={modeOptions}
               selectedItem={modeOptions[0]}
-              height={42}
+              height='2.625rem'
               width='100%'
               class={comboBoxStyle}
               onChanged={this.onModeChanged}
-            ></i-combo-box>
+            />
           </i-vstack>
-          <i-vstack id='pnlDataSource' gap='10px'>
-            <i-hstack gap={4}>
-              <i-label caption='Data Source'></i-label>
-              <i-label caption='*' font={{ color: '#ff0000' }}></i-label>
+          <i-vstack id='pnlDataSource' gap='0.625rem'>
+            <i-hstack gap='0.25rem'>
+              <i-label caption='Data Source' />
+              <i-label caption='*' font={{ color: '#ff0000' }} />
             </i-hstack>
             <i-combo-box
               id='comboDataSource'
               items={dataSourceOptions}
               selectedItem={dataSourceOptions[0]}
-              height={42}
+              height='2.625rem'
               width='100%'
               class={comboBoxStyle}
               onChanged={this.onDataSourceChanged}
-            ></i-combo-box>
+            />
           </i-vstack>
-          <i-vstack id='pnlEndpoint' gap='10px'>
-            <i-hstack gap={4}>
-              <i-label id="lbEndpointCaption" caption='Query ID'></i-label>
-              <i-label caption='*' font={{ color: '#ff0000' }}></i-label>
+          <i-vstack id='pnlEndpoint' gap='0.625rem'>
+            <i-hstack gap="0.25rem">
+              <i-label id="lbEndpointCaption" caption='Query ID' />
+              <i-label caption='*' font={{ color: '#ff0000' }} />
             </i-hstack>
             <i-hstack verticalAlignment='center' gap='0.5rem'>
               <i-input
                 id='endpointInput'
-                height={42}
+                height="2.625rem"
                 width='100%'
                 onChanged={this.onUpdateEndpoint}
-              ></i-input>
+              />
               <i-icon
                 id="btnOpenLink"
                 name="external-link-alt" fill={Theme.text.primary}
                 opacity={0.5}
-                width={25} height={25}
+                width="1.5rem" height="1.5rem"
                 border={{ width: 1, style: 'solid', color: Theme.colors.secondary.light, radius: 4 }}
                 class="pointer"
                 onClick={this.openLink}
-              ></i-icon>
+              />
             </i-hstack>
           </i-vstack>
-          <i-vstack id='pnlFile' gap={10}>
-            <i-label caption='File Path'></i-label>
-            <i-label id='fileNameLb' caption=''></i-label>
+          <i-vstack id='pnlFile' gap='0.625rem'>
+            <i-label caption='File Path' />
+            <i-label id='fileNameLb' caption='' />
           </i-vstack>
-          <i-vstack id='pnlUpload' gap='10px'>
-            <i-label caption='Upload'></i-label>
+          <i-vstack id='pnlUpload' gap='0.625rem'>
+            <i-label caption='Upload' />
             <i-upload
               width='100%'
               onChanged={this.onImportFile}
               class={uploadStyle}
-            ></i-upload>
+            />
           </i-vstack>
-          <i-vstack gap='10px'>
+          <i-vstack gap='0.625rem'>
             <i-hstack verticalAlignment='center' gap='0.5rem' width="100%">
               <i-button
                 id='captureBtn'
-                height={42}
+                height='2.625rem'
                 width="50%"
                 caption='Capture Snapshot'
                 icon={{ name: 'camera', fill: Theme.colors.primary.contrastText }}
@@ -387,17 +425,17 @@ export default class ScomChartDataSourceSetup extends Module {
                   name: 'spinner',
                   spin: false,
                   fill: Theme.colors.primary.contrastText,
-                  width: 16,
-                  height: 16,
+                  width: '1rem',
+                  height: '1rem',
                   visible: false,
                 }}
                 class='capture-btn'
                 enabled={false}
                 onClick={this.onCapture}
-              ></i-button>
+              />
               <i-button
                 id='downloadBtn'
-                height={42}
+                height='2.625rem'
                 width="50%"
                 icon={{ name: 'download', fill: Theme.colors.primary.contrastText }}
                 background={{ color: '#1E88E5' }} //FIXME: use theme
@@ -406,17 +444,17 @@ export default class ScomChartDataSourceSetup extends Module {
                   name: 'spinner',
                   spin: false,
                   fill: Theme.colors.primary.contrastText,
-                  width: 16,
-                  height: 16,
+                  width: '1rem',
+                  height: '1rem',
                   visible: false,
                 }}
                 caption='Download File'
                 onClick={this.onExportFile}
-              ></i-button>
+              />
             </i-hstack>
           </i-vstack>
         </i-vstack>
-        <i-alert id='mdAlert'></i-alert>
+        <i-alert id='mdAlert' />
       </i-panel>
     )
   }
