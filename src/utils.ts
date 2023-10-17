@@ -1,4 +1,4 @@
-import { DataSource, IFetchDataOptions, ModeType } from "./interface";
+import { ChartType, DataSource, IFetchDataOptions, ModeType } from "./interface";
 
 export const callAPI = async (options: IFetchDataOptions) => {
   const defaultData = { metadata: { columns_name: [] }, rows: [] };
@@ -74,6 +74,41 @@ export const dataSourceOptions = [
   {
     label: 'Custom',
     value: DataSource.Custom
+  }
+]
+
+export const chartOptions = [
+  {
+    label: 'Counter',
+    value: ChartType.Counter
+  },
+  {
+    label: 'Table',
+    value: ChartType.Table
+  },
+  {
+    label: 'Pie Chart',
+    value: ChartType.Pie
+  },
+  {
+    label: 'Bar Chart',
+    value: ChartType.Bar
+  },
+  {
+    label: 'Line Chart',
+    value: ChartType.Line
+  },
+  {
+    label: 'Area Chart',
+    value: ChartType.Area
+  },
+  {
+    label: 'Scatter Chart',
+    value: ChartType.Scatter
+  },
+  {
+    label: 'Mixed Chart',
+    value: ChartType.Mixed
   }
 ]
 

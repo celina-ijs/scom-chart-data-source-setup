@@ -45,8 +45,8 @@ export const uploadStyle = Styles.style({
   width: '100%',
   margin: 0,
   $nest: {
-      '> .i-upload-wrapper': {
-          marginBottom: 0
-      }
+    '> .i-upload-wrapper': {
+      marginBottom: 0
+    }
   }
 });

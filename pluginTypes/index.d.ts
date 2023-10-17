@@ -14,11 +14,23 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
         Flipside = "Flipside",
         Custom = "Custom"
     }
+    export enum ChartType {
+        Counter = "scom-counter",
+        Table = "scom-table",
+        Pie = "scom-pie-chart",
+        Bar = "scom-bar-chart",
+        Line = "scom-line-chart",
+        Area = "scom-area-chart",
+        Scatter = "scom-scatter-chart",
+        Mixed = "scom-mixed-chart"
+    }
     export interface IFileData {
         cid?: string;
         name?: string;
     }
     export interface IConfigData {
+        chartType?: ChartType;
+        isChartTypeChanged?: boolean;
         mode: ModeType;
         dataSource: DataSource;
         apiEndpoint?: string;
@@ -34,7 +46,7 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
 }
 /// <amd-module name="@scom/scom-chart-data-source-setup/utils.ts" />
 declare module "@scom/scom-chart-data-source-setup/utils.ts" {
-    import { DataSource, IFetchDataOptions, ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
+    import { ChartType, DataSource, IFetchDataOptions, ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
     export const callAPI: (options: IFetchDataOptions) => Promise<any>;
     export const getExternalLink: (options: IFetchDataOptions) => string;
     export const modeOptions: {
@@ -45,23 +57,30 @@ declare module "@scom/scom-chart-data-source-setup/utils.ts" {
         label: string;
         value: DataSource;
     }[];
+    export const chartOptions: {
+        label: string;
+        value: ChartType;
+    }[];
     export const fetchContentByCID: (ipfsCid: string) => Promise<any>;
 }
 /// <amd-module name="@scom/scom-chart-data-source-setup" />
 declare module "@scom/scom-chart-data-source-setup" {
     import { Module, Container, ControlElement } from '@ijstech/components';
     import "@scom/scom-chart-data-source-setup/index.css.ts";
-    import { DataSource, IConfigData, IFileData } from "@scom/scom-chart-data-source-setup/interface.ts";
+    import { ChartType, DataSource, IConfigData, IFileData } from "@scom/scom-chart-data-source-setup/interface.ts";
     import { ModeType } from "@scom/scom-chart-data-source-setup/interface.ts";
     import { callAPI, fetchContentByCID } from "@scom/scom-chart-data-source-setup/utils.ts";
-    export { fetchContentByCID, callAPI, ModeType, DataSource };
+    export { fetchContentByCID, callAPI, ModeType, DataSource, ChartType };
     interface ScomChartDataElement extends ControlElement {
+        chartType?: ChartType;
+        isChartTypeShown?: boolean;
         mode?: ModeType;
         dataSource?: DataSource;
         apiEndpoint?: string;
         queryId?: string;
         file?: IFileData;
         onCustomDataChanged?: (data: IConfigData) => Promise<void>;
+        onCustomChartTypeChanged?: (data: IConfigData) => Promise<void>;
     }
     global {
         namespace JSX {
@@ -72,6 +91,10 @@ declare module "@scom/scom-chart-data-source-setup" {
     }
     export default class ScomChartDataSourceSetup extends Module {
         private _data;
+        private isChartTypeShown;
+        private currentChartType;
+        private vstackChartType;
+        private chartSelect;
         private modeSelect;
         private comboDataSource;
         private endpointInput;
@@ -99,7 +122,9 @@ declare module "@scom/scom-chart-data-source-setup" {
         set file(value: IFileData);
         private get fetchDataOptions();
         onCustomDataChanged(data: IConfigData): Promise<void>;
+        onCustomChartTypeChanged(value: ChartType): Promise<void>;
         private renderUI;
+        private onChartChanged;
         private onModeChanged;
         private onDataSourceChanged;
         private updateMode;
