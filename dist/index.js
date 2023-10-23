@@ -109,7 +109,7 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
             const jsonData = await response.json();
             if (interface_1.DataSource.Custom && apiEndpoint.includes('flipsidecrypto')) {
                 let result = { rows: [], metadata: { column_names: [] } };
-                if (jsonData === null || jsonData === void 0 ? void 0 : jsonData.length) {
+                if (jsonData?.length) {
                     result = {
                         metadata: { column_names: Object.keys(jsonData[0]) },
                         rows: jsonData
@@ -119,7 +119,7 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
             }
             return jsonData.result || defaultData;
         }
-        catch (_a) { }
+        catch { }
         return defaultData;
     };
     exports.callAPI = callAPI;
@@ -279,13 +279,12 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
         async onCustomChartTypeChanged(value) {
         }
         renderUI() {
-            var _a, _b;
             this.updateMode();
             if ([interface_2.DataSource.Dune, interface_2.DataSource.Flipside].includes(this.data.dataSource)) {
-                this.endpointInput.value = (_a = this.data.queryId) !== null && _a !== void 0 ? _a : '';
+                this.endpointInput.value = this.data.queryId ?? '';
             }
             else if (this.data.dataSource === interface_2.DataSource.Custom) {
-                this.endpointInput.value = (_b = this.data.apiEndpoint) !== null && _b !== void 0 ? _b : '';
+                this.endpointInput.value = this.data.apiEndpoint ?? '';
             }
             this.captureBtn.enabled = !!this.endpointInput.value;
             if (this.isChartTypeShown) {
@@ -316,7 +315,6 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             this.onCustomDataChanged(this.data);
         }
         async updateMode() {
-            var _a;
             const modeOption = utils_1.modeOptions.find((mode) => mode.value === this.data.mode);
             if (modeOption)
                 this.modeSelect.selectedItem = modeOption;
@@ -334,27 +332,25 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             this.pnlEndpoint.visible = !isSnapshot;
             this.pnlUpload.visible = isSnapshot;
             this.pnlFile.visible = isSnapshot;
-            this.fileNameLb.caption = `${((_a = this.data.file) === null || _a === void 0 ? void 0 : _a.cid) || ''}`;
+            this.fileNameLb.caption = `${this.data.file?.cid || ''}`;
         }
         async updateChartData() {
             const data = this.data.dataSource ? await (0, utils_1.callAPI)(this.fetchDataOptions) : [];
             this._data.chartData = JSON.stringify(data, null, 4);
         }
         onUpdateEndpoint() {
-            var _a, _b;
             if ([interface_2.DataSource.Dune, interface_2.DataSource.Flipside].includes(this.data.dataSource)) {
-                this.data.queryId = (_a = this.endpointInput.value) !== null && _a !== void 0 ? _a : '';
+                this.data.queryId = this.endpointInput.value ?? '';
                 this.data.apiEndpoint = '';
             }
             else if (this.data.dataSource === interface_2.DataSource.Custom) {
-                this.data.apiEndpoint = (_b = this.endpointInput.value) !== null && _b !== void 0 ? _b : '';
+                this.data.apiEndpoint = this.endpointInput.value ?? '';
                 this.data.queryId = '';
             }
             this.captureBtn.enabled = !!this.data.queryId || !!this.data.apiEndpoint;
             this.onCustomDataChanged(this.data);
         }
         async onCapture() {
-            var _a;
             // this.captureBtn.rightIcon.spin = true
             // this.captureBtn.rightIcon.visible = true
             if (this.pnlLoading)
@@ -362,7 +358,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             this.mode = interface_3.ModeType.SNAPSHOT;
             try {
                 await this.updateChartData();
-                if ((_a = this._data.chartData) === null || _a === void 0 ? void 0 : _a.length)
+                if (this._data.chartData?.length)
                     await this.onUploadToIPFS();
             }
             catch (err) {
@@ -375,8 +371,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
             }
         }
         async onUploadToIPFS() {
-            var _a, _b;
-            const result = (_b = (_a = (await components_2.application.uploadData('chart_data.json', this.data.chartData)).data) === null || _a === void 0 ? void 0 : _a.links) === null || _b === void 0 ? void 0 : _b[0];
+            const result = (await components_2.application.uploadData('chart_data.json', this.data.chartData)).data?.links?.[0];
             if (result) {
                 this._data.file = { cid: result.cid, name: result.name };
                 this.fileNameLb.caption = `${result.cid || ''}`;
@@ -400,8 +395,7 @@ define("@scom/scom-chart-data-source-setup", ["require", "exports", "@ijstech/co
                 const reader = new FileReader();
                 reader.readAsText(file, 'UTF-8');
                 reader.onload = async (event) => {
-                    var _a;
-                    self._data.chartData = (_a = event.target) === null || _a === void 0 ? void 0 : _a.result;
+                    self._data.chartData = event.target?.result;
                     if (this.pnlLoading)
                         this.pnlLoading.visible = true;
                     target.clear();
