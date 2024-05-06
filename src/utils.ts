@@ -8,9 +8,13 @@ export const callAPI = async (options: IFetchDataOptions) => {
     switch (options.dataSource) {
       case DataSource.Dune:
         apiEndpoint = `/dune/query/${options.queryId}`;
+        if (options.limit) apiEndpoint += `?limit=${options.limit}`;
+        if (options.offset) apiEndpoint += `&offset=${options.offset}`;
         break;
       case DataSource.Flipside:
         apiEndpoint = `/flipside/query/${options.queryId}`;
+        if (options.limit) apiEndpoint += `?limit=${options.limit}`;
+        if (options.offset) apiEndpoint += `&offset=${options.offset}`;
         break;
       case DataSource.Custom:
         apiEndpoint = options.apiEndpoint;

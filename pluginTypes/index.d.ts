@@ -42,6 +42,8 @@ declare module "@scom/scom-chart-data-source-setup/interface.ts" {
         dataSource: DataSource;
         queryId?: string;
         apiEndpoint?: string;
+        limit?: number;
+        offset?: number;
     }
 }
 /// <amd-module name="@scom/scom-chart-data-source-setup/utils.ts" />

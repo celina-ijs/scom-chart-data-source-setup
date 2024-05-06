@@ -95,9 +95,17 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
             switch (options.dataSource) {
                 case interface_1.DataSource.Dune:
                     apiEndpoint = `/dune/query/${options.queryId}`;
+                    if (options.limit)
+                        apiEndpoint += `?limit=${options.limit}`;
+                    if (options.offset)
+                        apiEndpoint += `&offset=${options.offset}`;
                     break;
                 case interface_1.DataSource.Flipside:
                     apiEndpoint = `/flipside/query/${options.queryId}`;
+                    if (options.limit)
+                        apiEndpoint += `?limit=${options.limit}`;
+                    if (options.offset)
+                        apiEndpoint += `&offset=${options.offset}`;
                     break;
                 case interface_1.DataSource.Custom:
                     apiEndpoint = options.apiEndpoint;
