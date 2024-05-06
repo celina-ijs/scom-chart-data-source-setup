@@ -40,4 +40,6 @@ export interface IFetchDataOptions {
   dataSource: DataSource;
   queryId?: string;
   apiEndpoint?: string;
+  limit?: number;
+  offset?: number;
 }
