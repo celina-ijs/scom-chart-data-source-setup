@@ -108,7 +108,13 @@ define("@scom/scom-chart-data-source-setup/utils.ts", ["require", "exports", "@s
                         apiEndpoint += `&offset=${options.offset}`;
                     break;
                 case interface_1.DataSource.Custom:
-                    apiEndpoint = options.apiEndpoint;
+                    const splittedArr = options.apiEndpoint.split('?');
+                    const queries = new URLSearchParams(splittedArr[1] || '');
+                    if (options.limit)
+                        queries.append('limit', options.limit.toString());
+                    if (options.offset)
+                        queries.append('offset', options.offset.toString());
+                    apiEndpoint = `${splittedArr[0]}?${queries.toString()}`;
                     break;
             }
             if (!apiEndpoint)
